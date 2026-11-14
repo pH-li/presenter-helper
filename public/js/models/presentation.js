@@ -24,10 +24,22 @@ export function normalize(p, keepId = false) {
     slides: slides.map((s) => ({
       id: keepId && s && s.id ? String(s.id) : uid(),
       notes: String((s && s.notes) || ''),
+      targetSeconds: normalizeSeconds(s && s.targetSeconds),
     })),
     updatedAt: Number(p.updatedAt) || Date.now(),
   };
 }
+
+export const MAX_SLIDE_SECONDS = 6 * 3600;
+
+/** Clamp a slide's time budget to a whole number of seconds (0 = no budget). */
+export const normalizeSeconds = (v) => clamp(Math.round(Number(v) || 0), 0, MAX_SLIDE_SECONDS);
+
+/** Sum of all slide time budgets, in seconds. */
+export const slidesTotalSeconds = (p) => p.slides.reduce((sum, s) => sum + (s.targetSeconds || 0), 0);
+
+/** A blank slide. */
+export const newSlide = (notes = '') => ({ id: uid(), notes: String(notes), targetSeconds: 0 });
 
 const SEPARATOR = /^[ \t]*---[ \t]*$/m;
 

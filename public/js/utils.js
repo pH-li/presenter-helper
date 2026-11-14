@@ -16,6 +16,28 @@ export function fmtDate(ts) {
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+const MAX_DURATION_S = 6 * 3600;
+
+/**
+ * Parse a typed duration into seconds.
+ *   "1:30" → 90 · "2" → 120 (bare numbers are minutes) · "0.5" → 30
+ *   "45s" → 45 · "2m" → 120 · "1m 30s" → 90 · "" → 0
+ * @returns {number | null} seconds, or null if it can't be understood
+ */
+export function parseDuration(text) {
+  const s = String(text).trim().toLowerCase();
+  if (!s) return 0;
+  let seconds = null;
+  let m;
+  if ((m = s.match(/^(\d+):([0-5]\d)$/))) seconds = Number(m[1]) * 60 + Number(m[2]);
+  else if ((m = s.match(/^\d+(?:\.\d+)?$/))) seconds = parseFloat(s) * 60;
+  else if ((m = s.match(/^(?:(\d+(?:\.\d+)?)\s*m(?:in(?:utes?)?)?)?\s*(?:(\d+)\s*s(?:ec(?:onds?)?)?)?$/)) && (m[1] || m[2])) {
+    seconds = (parseFloat(m[1]) || 0) * 60 + (Number(m[2]) || 0);
+  }
+  if (seconds === null || seconds > MAX_DURATION_S) return null;
+  return Math.round(seconds);
+}
+
 /** Format milliseconds as m:ss or h:mm:ss. */
 export function fmtDuration(ms, roundUp = false) {
   const total = roundUp ? Math.ceil(ms / 1000) : Math.floor(ms / 1000);

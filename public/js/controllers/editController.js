@@ -1,4 +1,5 @@
-import { splitNotes } from '../models/presentation.js';
+import { splitNotes, slidesTotalSeconds } from '../models/presentation.js';
+import { parseDuration } from '../utils.js';
 import { toast } from '../views/ui.js';
 
 export class EditController {
@@ -16,20 +17,36 @@ export class EditController {
     const p = this.model.get(id);
     if (!p) return false;
     const { model, view } = this;
+    const updateSummary = () => view.setTimingSummary(slidesTotalSeconds(p), p.targetMinutes);
+    const renderSlides = (focusIndex) => {
+      view.renderSlides(p, focusIndex);
+      updateSummary();
+    };
 
     view.bind({
       onTitle: (title) => {
         model.update(id, { title });
         view.setTitle(title);
       },
-      onTargetMinutes: (value) => model.update(id, { targetMinutes: value }),
+      onTargetMinutes: (value) => {
+        model.update(id, { targetMinutes: value });
+        updateSummary();
+      },
       onNotes: (index, notes) => model.setSlideNotes(id, index, notes),
-      onAddSlide: () => view.renderSlides(p, model.addSlide(id)),
+      // Returns the parsed seconds (saved), or null if the text isn't a time yet (not saved).
+      onSlideTarget: (index, text) => {
+        const seconds = parseDuration(text);
+        if (seconds === null) return null;
+        model.setSlideTarget(id, index, seconds);
+        updateSummary();
+        return seconds;
+      },
+      onAddSlide: () => renderSlides(model.addSlide(id)),
       onMoveSlide: (index, delta) => {
-        if (model.moveSlide(id, index, delta)) view.renderSlides(p);
+        if (model.moveSlide(id, index, delta)) renderSlides();
       },
       onRemoveSlide: (index) => {
-        if (model.removeSlide(id, index)) view.renderSlides(p);
+        if (model.removeSlide(id, index)) renderSlides();
       },
       // Returns true when the paste was handled (so the view cancels the default).
       onPaste: (index, { text, before, after }) => {
@@ -37,11 +54,12 @@ export class EditController {
         if (!parts) return false;
         model.setSlideNotes(id, index, before + parts[0] + after);
         model.insertSlidesAfter(id, index, parts.slice(1));
-        view.renderSlides(p, index + parts.length - 1);
+        renderSlides(index + parts.length - 1);
         toast(`Split into ${parts.length} slides.`);
         return true;
       },
     });
     view.render(p);
+    updateSummary();
   }
 }
