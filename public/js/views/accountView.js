@@ -1,6 +1,6 @@
 import { esc } from '../utils.js';
 import { href } from '../router.js';
-import { bindRoot } from './ui.js';
+import { bindRoot, armConfirm } from './ui.js';
 import { syncLabel, syncTone } from './syncLabels.js';
 
 export class AccountView {
@@ -8,7 +8,7 @@ export class AccountView {
     this.root = root;
   }
 
-  /** @param {{ onSendLink, onSignOut, onSyncNow, onReset }} h */
+  /** @param {{ onSendLink, onSignOut, onSyncNow, onReset, onDeleteAccount }} h */
   bind(h) {
     bindRoot(this.root, {
       submit: (e) => {
@@ -22,6 +22,9 @@ export class AccountView {
         if (b.dataset.act === 'signout') h.onSignOut();
         else if (b.dataset.act === 'sync') h.onSyncNow();
         else if (b.dataset.act === 'reset') h.onReset();
+        else if (b.dataset.act === 'delete-account') {
+          if (armConfirm(b, 'Tap again to delete everything', 5000)) h.onDeleteAccount();
+        }
       },
     });
   }
@@ -62,7 +65,13 @@ export class AccountView {
         <div class="row">
           <button class="btn" data-act="sync" ${s.busy ? 'disabled' : ''}>Sync now</button>
           <button class="btn ghost danger-text" data-act="signout" ${s.busy ? 'disabled' : ''}>Sign out</button>
-        </div>`;
+        </div>
+        <details class="danger-zone">
+          <summary>Delete account</summary>
+          <p class="muted small">This permanently deletes your account and every presentation in it, on all your devices. It can’t be undone.
+            If you want to keep a copy, use <a href="${href.home()}">Export backup</a> on the home page first.</p>
+          <button class="btn danger-outline" data-act="delete-account" ${s.busy ? 'disabled' : ''}>Delete my account</button>
+        </details>`;
     }
     if (s.sentTo) {
       return `
@@ -81,6 +90,7 @@ export class AccountView {
         ${s.error ? `<p class="error-text">${esc(s.error)}</p>` : ''}
         <button class="btn primary" type="submit" ${s.busy ? 'disabled' : ''}>${s.busy ? 'Sending…' : 'Email me a sign-in link'}</button>
       </form>
-      <p class="muted small">Presentations already on this device are added to your account when you sign in.</p>`;
+      <p class="muted small">Presentations already on this device are added to your account when you sign in.</p>
+      <p class="muted small">By signing in you agree to the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</p>`;
   }
 }

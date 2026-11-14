@@ -250,3 +250,26 @@ a { color: var(--accent-hover); }
 @keyframes pulse { 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { .dot.busy { animation: none; } }
 .chip-caret { font-size: 1.1rem; line-height: 1; margin-left: -2px; }
+
+/* ---------- legal pages & account deletion ---------- */
+.legal { line-height: 1.65; }
+.legal h1 { font-size: 1.8rem; margin-bottom: 4px; }
+.legal h2 { font-size: 1.15rem; margin: 28px 0 8px; }
+.legal h3 { font-size: 1rem; margin: 16px 0 6px; }
+.legal p, .legal ul { margin: 0 0 12px; }
+.legal ul { padding-left: 1.2em; }
+.legal li { margin-bottom: 6px; }
+.legal-summary { margin: 20px 0 8px; }
+.legal-summary h2 { margin-top: 0; }
+.legal-summary ul { margin-bottom: 0; }
+.legal-links { font-size: 0.85rem; color: var(--muted); }
+.legal-links a { color: var(--muted); }
+.legal-links a:hover { color: var(--text); }
+
+.danger-zone { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border); }
+.danger-zone summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+.danger-zone[open] summary { margin-bottom: 10px; }
+.danger-zone p { margin: 0 0 12px; }
+.btn.danger-outline { background: transparent; border-color: var(--over); color: var(--over); }
+.btn.danger-outline:hover { background: rgba(255, 107, 107, 0.12); }
+.btn.danger-outline.danger { background: var(--over); color: #fff; }

@@ -63,6 +63,9 @@ export class HomeView {
             <label class="btn small">Import backup<input type="file" accept="application/json,.json" hidden data-act="import"></label>
             ${account.email ? '<button class="btn small ghost danger-text" data-act="signout">Sign out</button>' : ''}
           </div>
+          <nav class="legal-links" aria-label="Legal">
+            <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="mailto:lyrwrites@gmail.com">Contact</a>
+          </nav>
         </footer>
       </main>`;
   }

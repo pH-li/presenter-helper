@@ -33,6 +33,32 @@ export function createAccount(auth, sync) {
         return { ok: false, error: (e && e.message) || 'Sign-out failed. Please try again.' };
       }
     },
+    /**
+     * Permanently delete the account and every presentation in it (all devices),
+     * then remove this device's copy. Sync is stopped first so nothing re-uploads.
+     * @returns {Promise<{ ok: boolean, error?: string }>}
+     */
+    async deleteAccount() {
+      if (!auth || !auth.user) return { ok: false, error: 'You’re not signed in.' };
+      const user = auth.user;
+      sync.stop();
+      try {
+        await auth.deleteAccount();
+      } catch (e) {
+        await sync.start(user).catch(() => {}); // still signed in: resume syncing
+        const msg = (e && e.message) || '';
+        return {
+          ok: false,
+          error: /function|schema cache|not find/i.test(msg)
+            ? 'Account deletion isn’t set up on the server yet. Please email lyrwrites@gmail.com and we’ll delete it for you.'
+            : /fetch|network/i.test(msg)
+              ? 'Couldn’t reach the server. Check your connection and try again.'
+              : msg || 'Couldn’t delete your account. Please try again.',
+        };
+      }
+      sync.forgetUser(user.id);
+      return { ok: true };
+    },
     state: () => ({
       enabled: Boolean(auth),
       ready: Boolean(auth && auth.ready),
