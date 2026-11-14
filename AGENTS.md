@@ -16,6 +16,8 @@ Presenter Helper is a static web app for speakers. The present view shows one sl
 | `public/js/main.js` | Composition root. The **only** place objects are constructed and wired, including auth → sync → re-render |
 | `public/js/router.js` | `Router` (hash routes `''`, `edit`, `present`, `account`; `router.current`), `href.*()` builders, `navigate()` |
 | `public/js/utils.js` | DOM-free helpers: `esc`, `uid`, `clamp`, `plural`, `fmtDate`, `fmtDuration` |
+| `public/js/notes/format.js` | `notesToHtml()`: the notes Markdown subset (nested `-`/`*`/`1.` lists by indentation, `**bold**`, `*italic*`, `#` headings) → HTML. **Escapes first**, then adds markup; the only place notes become HTML |
+| `public/js/notes/editing.js` | Pure textarea edits (`continueList`, `indentLines`, `toggleList`, `toggleBold`) returning `{ start, end, text, selStart, selEnd }`; `EditView` applies them via `insertText` so undo works |
 | `public/js/models/presentation.js` | `normalize()`, `splitNotes()`, font constants |
 | `public/js/models/presentationsModel.js` | `PresentationsModel`: the collection and all mutations; persists via an injected store. Also `subscribe()`, `setStore()`, `replaceAll()` (updates objects in place) and `adopt()` |
 | `public/js/models/localStore.js` | `LocalStore` adapter (`load` / `save` / `clear`). The signed-out cache uses key `presenter-helper:v1`; each user gets `userStorageKey(id)` |
@@ -38,6 +40,7 @@ Presenter Helper is a static web app for speakers. The present view shows one sl
 
 ### Layer rules
 - **Models:** no DOM, `window` or `document`. They must run in Node. Every change to a model needs a test.
+- **`notes/` and `utils.js`** are DOM-free helpers. Views may import them; keep them free of app state, and test them in Node.
 - **Views:** render with `innerHTML` and attach delegated handlers via `bindRoot()` on `#app`, dispatching on `data-act` / `data-field`. They call the callbacks the controller passed to `bind()` and never import models.
 - **Controllers:** call model methods, then update the view. Anything registered on `document` or `window`, and any interval, must be torn down in the cleanup function that `mount()` returns.
 - **Persistence:** only store adapters (`LocalStore`, `SupabaseRemote`) and `CloudSync` may touch `localStorage` or the backend.

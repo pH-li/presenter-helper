@@ -1,5 +1,6 @@
 import { href } from '../router.js';
 import { bindRoot, swipeHandlers, prefersReducedMotion } from './ui.js';
+import { notesToHtml } from '../notes/format.js';
 
 export class PresentView {
   constructor(root) {
@@ -85,7 +86,8 @@ export class PresentView {
   showSlide(index, total, notes, direction = 0) {
     const empty = !notes.trim();
     const text = this.els.notesText;
-    text.textContent = empty ? 'No notes for this slide.' : notes;
+    if (empty) text.textContent = 'No notes for this slide.';
+    else text.innerHTML = notesToHtml(notes); // escapes everything; only list/emphasis markup is added
     text.classList.toggle('empty-note', empty);
     this.els.count.innerHTML = `<span class="label">Slide </span>${index + 1} / ${total}`;
     this.els.notes.scrollTop = 0;
