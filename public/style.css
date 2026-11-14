@@ -16,7 +16,15 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
-body { font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+body {
+  font-size: 16px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+/* No pull-to-refresh / rubber-banding while presenting. */
+html:has(.present), html:has(.present) body { overscroll-behavior: none; }
 h1, h2 { margin: 0; line-height: 1.2; }
 h1 { font-size: 1.6rem; }
 h2 { font-size: 1.1rem; }
@@ -60,7 +68,11 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; }
 .row.tight { gap: 6px; }
 
 /* ---------- pages (home + editor) ---------- */
-.page { max-width: 820px; margin: 0 auto; padding: 32px 20px 80px; }
+.page {
+  max-width: 820px; margin: 0 auto;
+  padding: max(32px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px))
+    max(80px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+}
 .page-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 28px; }
 
 .deck-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
@@ -118,11 +130,14 @@ input[type='text'] { font-size: 1.15rem; font-weight: 600; }
 
 .bar {
   display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between;
-  padding: 8px 16px;
+  padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
   background: var(--surface); border-block: 1px solid var(--border);
 }
+.bar-group { display: flex; align-items: center; gap: 6px; }
 .slide-count { min-width: 7.5em; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
 .font-label { min-width: 3.5em; text-align: center; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.icon-only { display: none; font-size: 1.15rem; line-height: 1; }
+.touch-hint { display: none; margin: 0; font-size: 0.85rem; }
 
 .timer {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
@@ -144,6 +159,51 @@ input[type='text'] { font-size: 1.15rem; font-weight: 600; }
 
 @media (max-width: 640px), (max-height: 560px) {
   .keys { display: none; }
+}
+
+/* ---------- touch devices ---------- */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .icon-btn { width: 44px; height: 44px; }
+  .keys { display: none; }
+  .touch-hint { display: block; }
+}
+
+/* ---------- phones (portrait) ---------- */
+@media (max-width: 640px) {
+  h1 { font-size: 1.4rem; }
+  .page-head .btn.primary { flex: 1 1 auto; }
+  .deck .row { width: 100%; }
+  .deck .row .btn:not(.ghost) { flex: 1 1 0; }
+  .deck { padding: 16px; }
+
+  /* Present: one compact control row. */
+  .bar { flex-wrap: nowrap; gap: 4px; padding-block: 6px; }
+  .bar-group { gap: 2px; }
+  .bar .btn { min-width: 44px; padding: 8px 10px; }
+  .bar .label, .font-label { display: none; }
+  .bar .icon-only { display: inline; }
+  .slide-count { min-width: 4.2em; }
+  .timer { gap: 10px; }
+  .notes { padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
+}
+
+/* ---------- phones (landscape): notes left, timer right, controls below ---------- */
+@media (orientation: landscape) and (max-height: 560px) {
+  .present {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: 'notes timer' 'bar bar';
+  }
+  .notes { grid-area: notes; padding-block: max(16px, env(safe-area-inset-top, 0px)) 16px; }
+  .timer { grid-area: timer; border-left: 1px solid var(--border); gap: 8px; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .bar { grid-area: bar; padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)); }
+  .time { font-size: clamp(2.5rem, min(22vh, 11vw), 7rem); }
+  .timer-sub { font-size: 0.95rem; }
+  .btn.big { min-height: 44px; padding: 8px 18px; font-size: 1rem; }
+  .bar .label { display: inline; }
+  .bar .icon-only { display: none; }
+  .bar { flex-wrap: nowrap; }
 }
 
 /* ---------- toast ---------- */

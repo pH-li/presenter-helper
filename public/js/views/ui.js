@@ -1,12 +1,43 @@
 // Shared view helpers.
 
 /** Replace all delegated handlers on the shared root, so views never stack listeners. */
-export function bindRoot(root, { click, input, change, paste } = {}) {
+export function bindRoot(root, { click, input, change, paste, touchstart, touchend } = {}) {
   root.onclick = click || null;
   root.oninput = input || null;
   root.onchange = change || null;
   root.onpaste = paste || null;
+  root.ontouchstart = touchstart || null;
+  root.ontouchend = touchend || null;
 }
+
+/**
+ * Horizontal swipe detector for touch screens. Returns { touchstart, touchend }
+ * handlers for bindRoot. Vertical drags (scrolling) and slow drags are ignored.
+ * @param {(direction: 1 | -1) => void} onSwipe  1 = swiped left (next), -1 = swiped right (prev)
+ * @param {string} [ignoreSelector] touches starting inside these elements are ignored
+ */
+export function swipeHandlers(onSwipe, ignoreSelector = 'button, a, input, textarea') {
+  let start = null;
+  return {
+    touchstart(e) {
+      start =
+        e.touches.length === 1 && !e.target.closest(ignoreSelector)
+          ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
+          : null;
+    },
+    touchend(e) {
+      if (!start) return;
+      const dx = e.changedTouches[0].clientX - start.x;
+      const dy = e.changedTouches[0].clientY - start.y;
+      const quick = Date.now() - start.t < 700;
+      start = null;
+      if (quick && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) onSwipe(dx < 0 ? 1 : -1);
+    },
+  };
+}
+
+export const prefersReducedMotion = () =>
+  window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * Two-click confirmation for destructive buttons.
