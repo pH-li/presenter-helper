@@ -8,7 +8,7 @@ export class HomeView {
     this.root = root;
   }
 
-  /** @param {{ onCreate, onDelete, onExport, onImport }} h */
+  /** @param {{ onCreate, onDelete, onExport, onImport, onSignOut }} h */
   bind(h) {
     bindRoot(this.root, {
       click: (e) => {
@@ -17,6 +17,11 @@ export class HomeView {
         switch (b.dataset.act) {
           case 'new':
             h.onCreate();
+            break;
+          case 'signout':
+            b.disabled = true;
+            b.textContent = 'Signing out…';
+            h.onSignOut();
             break;
           case 'delete':
             if (armConfirm(b, 'Click again to delete')) h.onDelete(b.dataset.id);
@@ -56,6 +61,7 @@ export class HomeView {
           <div class="row">
             <button class="btn small" data-act="export">Export backup</button>
             <label class="btn small">Import backup<input type="file" accept="application/json,.json" hidden data-act="import"></label>
+            ${account.email ? '<button class="btn small ghost danger-text" data-act="signout">Sign out</button>' : ''}
           </div>
         </footer>
       </main>`;
@@ -65,8 +71,11 @@ export class HomeView {
     const chip = this.root.querySelector('#syncChip');
     if (!chip) return;
     chip.hidden = !account.enabled;
-    chip.innerHTML = `<span class="dot ${syncTone(account)}"></span>${esc(syncLabel(account) || '')}`;
-    chip.title = account.email ? `Signed in as ${account.email}` : 'Sign in to sync across devices';
+    chip.innerHTML = `<span class="dot ${syncTone(account)}"></span>${esc(syncLabel(account) || '')}${
+      account.email ? '<span class="chip-caret" aria-hidden="true">›</span>' : ''
+    }`;
+    chip.title = account.email ? `Signed in as ${account.email}. Account and sign out` : 'Sign in to sync across devices';
+    chip.setAttribute('aria-label', account.email ? `Account: ${syncLabel(account)}. Signed in as ${account.email}` : 'Sign in to sync');
   }
 
   #list(presentations) {
