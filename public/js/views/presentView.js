@@ -1,5 +1,5 @@
 import { href } from '../router.js';
-import { bindRoot } from './ui.js';
+import { bindRoot, swipeHandlers, prefersReducedMotion } from './ui.js';
 
 export class PresentView {
   constructor(root) {
@@ -26,6 +26,8 @@ export class PresentView {
         const fn = actions[b.dataset.act];
         if (fn) fn();
       },
+      // Swipe left/right anywhere outside the control bar to change slides.
+      ...swipeHandlers((dir) => (dir > 0 ? h.onNext() : h.onPrev()), '.bar, button, a'),
     });
   }
 
@@ -37,42 +39,62 @@ export class PresentView {
           <div class="notes-text" id="notesText"></div>
         </section>
         <nav class="bar" aria-label="Presenter controls">
-          <div class="row tight">
+          <div class="bar-group">
             <button class="btn" data-act="prev" aria-label="Previous slide" title="Previous slide (←)">←</button>
             <span class="slide-count" id="count"></span>
             <button class="btn" data-act="next" aria-label="Next slide" title="Next slide (→)">→</button>
           </div>
-          <div class="row tight">
+          <div class="bar-group">
             <button class="btn" data-act="smaller" aria-label="Smaller text" title="Smaller text (−)">A−</button>
             <span class="muted font-label" id="fontLabel"></span>
             <button class="btn" data-act="bigger" aria-label="Bigger text" title="Bigger text (+)">A+</button>
           </div>
-          <div class="row tight">
-            <button class="btn ghost" data-act="fullscreen" title="Fullscreen (F)">Fullscreen</button>
-            <a class="btn ghost" href="${href.edit(p.id)}" title="Exit (Esc)">Exit</a>
+          <div class="bar-group">
+            <button class="btn ghost" data-act="fullscreen" id="fullscreenBtn" aria-label="Fullscreen" title="Fullscreen (F)">
+              <span class="icon-only" aria-hidden="true">⛶</span><span class="label">Fullscreen</span>
+            </button>
+            <a class="btn ghost" href="${href.edit(p.id)}" aria-label="Exit" title="Exit (Esc)">
+              <span class="icon-only" aria-hidden="true">✕</span><span class="label">Exit</span>
+            </a>
           </div>
         </nav>
         <section class="timer" id="timer">
           <div class="time" id="time">0:00</div>
           <div class="timer-sub" id="timerSub"></div>
-          <div class="row">
+          <div class="row timer-actions">
             <button class="btn primary big" data-act="toggle" id="toggle">Start</button>
             <button class="btn big" data-act="reset">Reset</button>
           </div>
           <p class="keys muted">← → slides · ↑ ↓ scroll · + − text size · Space start/pause · R reset · F fullscreen · Esc exit</p>
+          <p class="touch-hint muted">Swipe left or right to change slides</p>
         </section>
       </div>`;
-    for (const id of ['notes', 'notesText', 'count', 'fontLabel', 'timer', 'time', 'timerSub', 'toggle']) {
+    for (const id of ['notes', 'notesText', 'count', 'fontLabel', 'timer', 'time', 'timerSub', 'toggle', 'fullscreenBtn']) {
       this.els[id] = this.root.querySelector('#' + id);
     }
   }
 
-  showSlide(index, total, notes) {
+  /** @param {number} [direction] 1 / -1 to animate the change, 0 for none */
+  showSlide(index, total, notes, direction = 0) {
     const empty = !notes.trim();
-    this.els.notesText.textContent = empty ? 'No notes for this slide.' : notes;
-    this.els.notesText.classList.toggle('empty-note', empty);
-    this.els.count.textContent = `Slide ${index + 1} / ${total}`;
+    const text = this.els.notesText;
+    text.textContent = empty ? 'No notes for this slide.' : notes;
+    text.classList.toggle('empty-note', empty);
+    this.els.count.innerHTML = `<span class="label">Slide </span>${index + 1} / ${total}`;
     this.els.notes.scrollTop = 0;
+    if (direction && text.animate && !prefersReducedMotion()) {
+      text.animate(
+        [
+          { opacity: 0, transform: `translateX(${direction * 24}px)` },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: 180, easing: 'ease-out' }
+      );
+    }
+  }
+
+  setFullscreenAvailable(available) {
+    this.els.fullscreenBtn.hidden = !available;
   }
 
   setFontSize(px) {

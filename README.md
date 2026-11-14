@@ -10,6 +10,12 @@ Speaking notes sit on the top half of the screen and a big timer on the bottom h
 - **Editor:** one notes box per slide, which you can add, reorder and delete. If you paste text containing a line with only `---`, it is split into slides at each `---`
 - **Autosave** in your browser, plus JSON export/import for backups
 - **Keeps the screen awake** while the timer runs (in supporting browsers)
+- **Works on phones:**
+  - Swipe left or right to change slides.
+  - In portrait, the present controls fit in one compact row.
+  - In landscape, notes and timer sit side by side.
+  - Buttons are at least 44px tall, so they're easy to tap.
+  - The layout stays clear of notches and rounded corners.
 
 ### Presenting shortcuts
 | Key | Action |
@@ -23,7 +29,7 @@ Speaking notes sit on the top half of the screen and a big timer on the bottom h
 | F | Fullscreen |
 | Esc | Exit |
 
-Most presentation clickers send PageUp/PageDown, so they work out of the box.
+Most presentation clickers send PageUp/PageDown, so they work out of the box. On touch screens, swipe left or right outside the control bar to change slides. (iPhone Safari doesn't allow web pages to go fullscreen, so the Fullscreen button is hidden there.)
 
 ## How saving works
 Right now, data is stored in the browser's `localStorage`. Each browser on each device has its own copy, and clearing your browser data deletes it. To move notes between devices, use **Export backup** and **Import backup** on the home page.

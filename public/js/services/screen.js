@@ -28,6 +28,10 @@ export class ScreenWakeLock {
 
 export const isFullscreen = () => Boolean(document.fullscreenElement);
 
+/** False on iPhone Safari, which doesn't allow page fullscreen. */
+export const isFullscreenSupported = () =>
+  Boolean(document.fullscreenEnabled && document.documentElement.requestFullscreen);
+
 export function toggleFullscreen() {
   if (isFullscreen()) exitFullscreen();
   else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
