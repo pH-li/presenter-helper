@@ -33,6 +33,8 @@ Presenter Helper is a static web app for speakers. The present view shows one sl
 | `tests/*.test.js` | `node:test` unit tests: models, sync merge, the sync engine against a fake cloud, and the config script |
 | `scripts/check.js` | CI static checks: required files, `node --check`, relative imports resolve |
 | `scripts/write-config.js` | Env (+ `.env`) → `public/config.js`; rejects secret keys |
+| `public/privacy.html`, `public/terms.html` | Static legal pages (no JS), styled with `style.css`. Contact: lyrwrites@gmail.com |
+| `supabase/migrations/*_delete_my_account.sql` | `delete_my_account()` RPC (SECURITY DEFINER, `authenticated` only): deletes the caller from `auth.users`, which cascades to their presentations |
 
 ### Layer rules
 - **Models:** no DOM, `window` or `document`. They must run in Node. Every change to a model needs a test.
@@ -58,6 +60,7 @@ Rules for changing the data:
 - **Keyboard shortcuts** live in three places: `KEYMAP` in `presentController.js`, the `.keys` hint in `presentView.js`, and the README table. Keep all three in sync.
 - Use `el.hidden` to show or hide elements, and keep layouts usable at about 400px wide.
 - Don't add dependencies, frameworks or a build step unless asked.
+- **Keep `privacy.html` true.** If a change sends user data somewhere new, update the policy and its "Last updated" date in the same PR. Examples: a new third-party service, analytics, an email provider, or a different storage region. Never add tracking or analytics without asking.
 
 ## Verifying changes
 ```sh

@@ -44,6 +44,16 @@ export class AuthService {
     if (error) throw error;
   }
 
+  /** Permanently delete the signed-in user and all their data (supabase/migrations/*_delete_my_account.sql). */
+  async deleteAccount() {
+    const client = await getSupabase();
+    const { error } = await client.rpc('delete_my_account');
+    if (error) throw error;
+    // The server session is gone with the user; clear the local one.
+    await client.auth.signOut({ scope: 'local' }).catch(() => {});
+    this.#set(null);
+  }
+
   async signOut() {
     const client = await getSupabase();
     const { error } = await client.auth.signOut();

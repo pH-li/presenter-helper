@@ -53,3 +53,42 @@ test('state reflects signed-in user and sync status', () => {
   assert.deepEqual(createAccount(auth, sync).state(), { enabled: true, ready: true, email: 'a@b.c', status: 'synced' });
   assert.deepEqual(createAccount(null, null).state(), { enabled: false, ready: false, email: null, status: 'off' });
 });
+
+function deleteFakes({ rpcError = null } = {}) {
+  const calls = [];
+  const auth = {
+    user: { id: 'u1', email: 'a@b.c' },
+    async deleteAccount() {
+      calls.push('rpc');
+      if (rpcError) throw new Error(rpcError);
+      this.user = null;
+    },
+  };
+  const sync = {
+    stop: () => calls.push('stop'),
+    start: async (u) => calls.push(`start:${u.id}`),
+    forgetUser: (id) => calls.push(`forget:${id}`),
+  };
+  return { auth, sync, calls };
+}
+
+test('deleteAccount stops syncing before deleting, then forgets the local copy', async () => {
+  const { auth, sync, calls } = deleteFakes();
+  const result = await createAccount(auth, sync).deleteAccount();
+  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(calls, ['stop', 'rpc', 'forget:u1']);
+});
+
+test('deleteAccount resumes syncing and keeps data if the server call fails', async () => {
+  const { auth, sync, calls } = deleteFakes({ rpcError: 'Failed to fetch' });
+  const result = await createAccount(auth, sync).deleteAccount();
+  assert.equal(result.ok, false);
+  assert.match(result.error, /connection/);
+  assert.deepEqual(calls, ['stop', 'rpc', 'start:u1']);
+});
+
+test('deleteAccount explains when the database function is missing', async () => {
+  const { auth, sync } = deleteFakes({ rpcError: 'Could not find the function public.delete_my_account without parameters in the schema cache' });
+  const result = await createAccount(auth, sync).deleteAccount();
+  assert.match(result.error, /isn’t set up on the server/);
+});

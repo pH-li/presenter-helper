@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 
-const REQUIRED = ['public/index.html', 'public/style.css', 'public/js/main.js', 'netlify.toml'];
+const REQUIRED = ['public/index.html', 'public/privacy.html', 'public/terms.html', 'public/style.css', 'public/js/main.js', 'netlify.toml'];
 const JS_ROOT = 'public/js';
 
 let failed = false;

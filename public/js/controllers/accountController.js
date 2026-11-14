@@ -37,6 +37,13 @@ export class AccountController {
         await sync.pull({ force: true });
         set({ busy: false, error: sync.status === 'synced' ? '' : 'Couldn’t reach the server. We’ll keep retrying.' });
       },
+      onDeleteAccount: async () => {
+        set({ busy: true, error: '' });
+        const result = await this.account.deleteAccount();
+        if (!result.ok) return set({ busy: false, error: result.error });
+        toast('Your account and all its presentations were deleted.');
+        navigate(href.home());
+      },
       onSignOut: async () => {
         set({ busy: true, error: '' });
         const result = await this.account.signOut();

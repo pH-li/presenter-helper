@@ -136,6 +136,13 @@ npm test         # unit tests (Node's built-in test runner)
 
 The workflow also contains an optional GitHub Actions deploy job. It stays switched off as long as the `NETLIFY_SITE_ID` / `NETLIFY_AUTH_TOKEN` secrets are unset. Leave them unset while Netlify's Git integration is on, or every change will deploy twice.
 
+## Privacy, terms and account deletion
+- **Policy pages:** [`public/privacy.html`](public/privacy.html) and [`public/terms.html`](public/terms.html) are plain static pages. They're linked from the home footer and from the sign-in form. The contact address is lyrwrites@gmail.com.
+- **Account deletion:** signed-in users can delete their account under **Account → Delete account**. This calls the `delete_my_account()` database function from [`supabase/migrations/`](supabase/migrations/), which removes the user and, through a cascade, all their presentations.
+- **Keep the privacy policy accurate.** Update `privacy.html` (and its "Last updated" date) whenever you add a service that receives user data, such as an email (SMTP) provider or analytics, or change where data is stored.
+
+These pages are a plain-language starting point, not legal advice. Have them reviewed if the app starts charging money, adds analytics, or grows a large user base.
+
 ## Contributing
 See [CONTRIBUTING.md](CONTRIBUTING.md). AI coding agents should also read [AGENTS.md](AGENTS.md).
 
