@@ -6,6 +6,10 @@ Speaking notes sit on the top half of the screen and a big timer on the bottom h
 ## Features
 - **Present mode:** the current slide's notes on top (scrollable), the timer on the bottom, and a control bar in between
 - **Target length (optional):** shows time remaining. The timer turns amber near the end and red when you go over
+- **Per-slide timers (optional):** give any slide a time budget in the editor. You can type it as `1:30`, `45s`, `2m`, or a bare number like `2`, which means minutes.
+  - The editor shows what the slide times add up to, and warns if that's more than the talk's target length.
+  - While presenting, the current slide shows its own timer and progress bar under the main timer. These turn amber in the slide's last 20% (at least 10 seconds) and red when over.
+  - Time is tracked per slide. Going back to an earlier slide continues its total.
 - **Adjustable text size**, remembered for each presentation
 - **Editor:** one notes box per slide, which you can add, reorder and delete. If you paste text containing a line with only `---`, it is split into slides at each `---`
 - **Autosave** in your browser, plus JSON export/import for backups

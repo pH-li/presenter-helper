@@ -61,6 +61,10 @@ export class PresentView {
         <section class="timer" id="timer">
           <div class="time" id="time">0:00</div>
           <div class="timer-sub" id="timerSub"></div>
+          <div class="slide-timer" id="slideTimer" hidden>
+            <div class="slide-timer-text"><span class="muted">This slide</span> <span id="slideTime"></span></div>
+            <div class="slide-progress" id="slideProgressTrack" aria-hidden="true"><div class="slide-progress-fill" id="slideProgress"></div></div>
+          </div>
           <div class="row timer-actions">
             <button class="btn primary big" data-act="toggle" id="toggle">Start</button>
             <button class="btn big" data-act="reset">Reset</button>
@@ -69,7 +73,10 @@ export class PresentView {
           <p class="touch-hint muted">Swipe left or right to change slides</p>
         </section>
       </div>`;
-    for (const id of ['notes', 'notesText', 'count', 'fontLabel', 'timer', 'time', 'timerSub', 'toggle', 'fullscreenBtn']) {
+    for (const id of [
+      'notes', 'notesText', 'count', 'fontLabel', 'timer', 'time', 'timerSub', 'toggle', 'fullscreenBtn',
+      'slideTimer', 'slideTime', 'slideProgressTrack', 'slideProgress',
+    ]) {
       this.els[id] = this.root.querySelector('#' + id);
     }
   }
@@ -116,6 +123,21 @@ export class PresentView {
     c.toggle('warn', state === 'warn');
     c.toggle('over', state === 'over');
     c.toggle('paused', paused);
+  }
+
+  /**
+   * The current slide's own timer.
+   * @param {{ visible: boolean, text: string, progress: number|null, state: 'none'|'ok'|'warn'|'over' }} s
+   *   progress: 0..1 of the slide's budget, or null when the slide has no budget
+   */
+  showSlideTimer({ visible, text, progress, state }) {
+    const e = this.els;
+    e.slideTimer.hidden = !visible;
+    if (!visible) return;
+    e.slideTime.textContent = text;
+    e.slideProgressTrack.hidden = progress === null;
+    if (progress !== null) e.slideProgress.style.width = `${Math.min(1, Math.max(0, progress)) * 100}%`;
+    for (const s of ['ok', 'warn', 'over']) e.slideTimer.classList.toggle(s, state === s);
   }
 
   setToggleLabel(label) {
