@@ -1,11 +1,67 @@
 import { esc, fmtDuration } from '../utils.js';
 import { href } from '../router.js';
 import { bindRoot, armConfirm } from './ui.js';
+import {
+  continueList,
+  indentLines,
+  toggleList,
+  toggleBold,
+  onListLine,
+  applyEditToString,
+} from '../notes/editing.js';
 
 const autosize = (t) => {
   t.style.height = 'auto';
   t.style.height = t.scrollHeight + 2 + 'px';
 };
+
+/**
+ * Apply an Edit (see notes/editing.js) to a textarea. Uses insertText when the
+ * browser supports it, so Ctrl/⌘+Z can undo the change. Always ends with an
+ * `input` event so the change is saved.
+ */
+function applyEdit(t, edit) {
+  const expected = applyEditToString(t.value, edit);
+  t.focus();
+  t.setSelectionRange(edit.start, edit.end);
+  let ok = false;
+  try {
+    ok = edit.text
+      ? document.execCommand('insertText', false, edit.text)
+      : edit.start === edit.end || document.execCommand('delete');
+  } catch {
+    ok = false;
+  }
+  if (!ok || t.value !== expected) {
+    t.value = expected;
+    t.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  t.setSelectionRange(edit.selStart, edit.selEnd);
+}
+
+/** The formatting toolbar's buttons → the edit each one makes. */
+const FORMATS = {
+  bullet: (v, s, e) => toggleList(v, s, e, 'bullet'),
+  number: (v, s, e) => toggleList(v, s, e, 'number'),
+  outdent: (v, s, e) => indentLines(v, s, e, -1),
+  indent: (v, s, e) => indentLines(v, s, e, 1),
+  bold: (v, s, e) => toggleBold(v, s, e),
+};
+
+/** Keyboard shortcuts inside a notes box. @returns {object|null|false} an Edit, null (no edit), or false (swallow the key) */
+function keyEdit(e, t) {
+  const { value: v, selectionStart: s, selectionEnd: en } = t;
+  const mod = e.ctrlKey || e.metaKey;
+  if (e.key === 'Enter' && !e.shiftKey && !mod && !e.altKey) return continueList(v, s, en);
+  if (e.key === 'Tab' && !mod && !e.altKey) {
+    // Only take over Tab on list lines / multi-line selections, so Tab still moves focus elsewhere.
+    const multiLine = v.slice(s, en).includes('\n');
+    if (!multiLine && !onListLine(v, s, en)) return null;
+    return indentLines(v, s, en, e.shiftKey ? -1 : 1) || false;
+  }
+  if (mod && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'b') return toggleBold(v, s, en);
+  return null;
+}
 
 /** 90 → "1:30", 0 → "" */
 const formatSlideTime = (seconds) => (seconds ? fmtDuration(seconds * 1000) : '');
@@ -23,11 +79,30 @@ export class EditView {
   /** @param {{ onTitle, onTargetMinutes, onNotes, onSlideTarget, onAddSlide, onMoveSlide, onRemoveSlide, onPaste }} h */
   bind(h) {
     bindRoot(this.root, {
+      // Keep focus (and the selection) in the notes box when clicking a toolbar button.
+      mousedown: (e) => {
+        if (e.target.closest('.notes-toolbar button')) e.preventDefault();
+      },
+      keydown: (e) => {
+        const t = e.target;
+        if (t.tagName !== 'TEXTAREA' || slideIndex(t) < 0 || e.isComposing) return;
+        const edit = keyEdit(e, t);
+        if (edit === null) return;
+        e.preventDefault();
+        if (edit) applyEdit(t, edit);
+      },
       click: (e) => {
         const b = e.target.closest('[data-act]');
         if (!b) return;
         const i = slideIndex(b);
         switch (b.dataset.act) {
+          case 'fmt': {
+            const t = b.closest('.slide').querySelector('textarea');
+            const edit = FORMATS[b.dataset.fmt](t.value, t.selectionStart, t.selectionEnd);
+            if (edit) applyEdit(t, edit);
+            else t.focus();
+            break;
+          }
           case 'add':
             h.onAddSlide();
             break;
@@ -101,8 +176,16 @@ export class EditView {
               value="${p.targetMinutes || ''}" placeholder="None">
           </label>
         </div>
-        <p class="muted hint">Tip: to fill several slides at once, paste notes separated by a line containing only <code>---</code>.
-          Give a slide a time (like <code>1:30</code> or <code>45s</code>) to get a timer for it while presenting.</p>
+        <details class="hint muted">
+          <summary>Tips for writing notes</summary>
+          <ul>
+            <li><strong>Lists:</strong> start a line with <code>-</code> or <code>1.</code> (or use • / 1. in the toolbar).
+              <kbd>Enter</kbd> continues the list; <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> nests or un-nests a point.</li>
+            <li><strong>Emphasis:</strong> <code>**bold**</code> (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>B</kbd>), <code>*italic*</code>, and <code># </code> for a heading line.</li>
+            <li><strong>Many slides at once:</strong> paste notes separated by a line containing only <code>---</code>.</li>
+            <li><strong>Slide timers:</strong> give a slide a time like <code>1:30</code> or <code>45s</code>.</li>
+          </ul>
+        </details>
         <p class="timing-summary" id="timingSummary" hidden></p>
         <ol class="slides" id="slides"></ol>
         <button class="btn add" data-act="add">+ Add slide</button>
@@ -156,7 +239,14 @@ export class EditView {
               <button class="icon-btn" data-act="remove" ${n === 1 ? 'disabled' : ''} aria-label="Delete slide" title="Delete slide">✕</button>
             </div>
           </div>
-          <textarea rows="4" placeholder="What do you want to say on this slide?" aria-label="Notes for slide ${i + 1}"></textarea>
+          <div class="notes-toolbar" role="toolbar" aria-label="Formatting for slide ${i + 1}">
+            <button type="button" data-act="fmt" data-fmt="bullet" aria-label="Bulleted list" title="Bulleted list">•&#8202;≡</button>
+            <button type="button" data-act="fmt" data-fmt="number" aria-label="Numbered list" title="Numbered list">1.</button>
+            <button type="button" data-act="fmt" data-fmt="outdent" aria-label="Outdent" title="Outdent (Shift+Tab)">⇤</button>
+            <button type="button" data-act="fmt" data-fmt="indent" aria-label="Indent" title="Indent (Tab)">⇥</button>
+            <button type="button" data-act="fmt" data-fmt="bold" aria-label="Bold" title="Bold (Ctrl/⌘+B)"><strong>B</strong></button>
+          </div>
+          <textarea rows="4" placeholder="What do you want to say on this slide?&#10;- Start a line with - for bullets" aria-label="Notes for slide ${i + 1}"></textarea>
         </li>`
       )
       .join('');

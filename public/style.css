@@ -123,10 +123,26 @@ input[type='text'] { font-size: 1.15rem; font-weight: 600; }
 }
 .notes-text {
   max-width: 1200px; margin: 0 auto;
-  white-space: pre-wrap; overflow-wrap: anywhere;
+  overflow-wrap: anywhere;
   line-height: 1.45;
 }
 .notes-text.empty-note { color: var(--muted); font-style: italic; }
+/* Formatted notes (see js/notes/format.js). Sizes are in em so they follow the A−/A+ text size. */
+.notes-text p { margin: 0 0 0.6em; }
+.notes-text ul, .notes-text ol { margin: 0 0 0.6em; padding-left: 1.15em; }
+.notes-text li { margin: 0.15em 0; padding-left: 0.15em; }
+.notes-text li::marker { color: var(--accent-hover); }
+.notes-text li ul, .notes-text li ol { margin: 0.15em 0 0.25em; padding-left: 1.1em; font-size: 0.88em; color: #cfd3dc; }
+.notes-text li li ul, .notes-text li li ol { font-size: 0.95em; color: var(--muted); }
+.notes-text ul ul { list-style-type: circle; }
+.notes-text ul ul ul { list-style-type: square; }
+.notes-text strong { color: #fff; font-weight: 700; }
+.notes-text em { font-style: italic; }
+.notes-text .note-h { font-weight: 700; margin: 0.4em 0 0.3em; }
+.notes-text .note-h1 { font-size: 1.25em; }
+.notes-text .note-h2 { font-size: 1.1em; }
+.notes-text .note-h3 { font-size: 1em; color: var(--accent-hover); }
+.notes-text > :last-child { margin-bottom: 0; }
 
 .bar {
   display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between;
@@ -303,3 +319,24 @@ a { color: var(--accent-hover); }
 .btn.danger-outline { background: transparent; border-color: var(--over); color: var(--over); }
 .btn.danger-outline:hover { background: rgba(255, 107, 107, 0.12); }
 .btn.danger-outline.danger { background: var(--over); color: #fff; }
+
+/* ---------- notes formatting toolbar (editor) ---------- */
+.notes-toolbar { display: flex; gap: 4px; margin-bottom: 6px; }
+.notes-toolbar button {
+  min-width: 36px; height: 32px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: transparent; color: var(--muted);
+  font: inherit; font-size: 0.9rem; line-height: 1; cursor: pointer;
+}
+.notes-toolbar button:hover { background: var(--surface-2); color: var(--text); }
+.notes-toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (pointer: coarse) { .notes-toolbar button { min-width: 44px; height: 40px; } }
+.slide textarea { tab-size: 2; }
+details.hint { margin: 0 0 20px; }
+details.hint summary { cursor: pointer; }
+details.hint ul { margin: 8px 0 0; padding-left: 1.2em; }
+details.hint li { margin-bottom: 6px; }
+kbd {
+  display: inline-block; padding: 0 5px; border: 1px solid var(--border); border-bottom-width: 2px;
+  border-radius: 4px; font: inherit; font-size: 0.8em; color: var(--text); background: var(--surface-2);
+}

@@ -12,6 +12,10 @@ Speaking notes sit on the top half of the screen and a big timer on the bottom h
   - Time is tracked per slide. Going back to an earlier slide continues its total.
 - **Adjustable text size**, remembered for each presentation
 - **Editor:** one notes box per slide, which you can add, reorder and delete. If you paste text containing a line with only `---`, it is split into slides at each `---`
+- **Formatted notes:** bulleted (`-`, `*`) and numbered (`1.`) lists, nested to any depth, plus `**bold**`, `*italic*` and `# headings`.
+  - **Keyboard:** Enter continues a list, and Enter on an empty point steps it back a level. Tab / Shift+Tab nests or un-nests a point. Ctrl/⌘+B makes text bold.
+  - **Toolbar:** each slide has buttons for the same actions, for phones and tablets.
+  - **Present mode:** notes render as real nested lists, and plain notes look the same as before.
 - **Autosave** in your browser, plus JSON export/import for backups
 - **Keeps the screen awake** while the timer runs (in supporting browsers)
 - **Works on phones:**
