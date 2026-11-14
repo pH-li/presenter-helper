@@ -1,0 +1,11 @@
+# Supabase project config, used by the Supabase CLI and the Supabase GitHub
+# integration (migrations in ./migrations are applied from here).
+# Only non-default settings are listed.
+project_id = "presenter-helper"
+
+[auth]
+site_url = "https://presentassist.netlify.app"
+additional_redirect_urls = [
+  "http://localhost:3000",
+  "https://*--presentassist.netlify.app",
+]

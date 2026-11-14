@@ -6,7 +6,7 @@ Thanks for helping out! This is a small, dependency-free static site, so getting
 ```sh
 git clone https://github.com/pH-li/presenter-helper.git
 cd presenter-helper
-npm start          # serves ./public. ES modules won't load from file://
+npm start          # writes config from .env, serves ./public on http://localhost:3000
 ```
 
 You only need Node.js 20 or newer. There's nothing to `npm install`.

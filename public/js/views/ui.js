@@ -1,11 +1,12 @@
 // Shared view helpers.
 
 /** Replace all delegated handlers on the shared root, so views never stack listeners. */
-export function bindRoot(root, { click, input, change, paste, touchstart, touchend } = {}) {
+export function bindRoot(root, { click, input, change, paste, submit, touchstart, touchend } = {}) {
   root.onclick = click || null;
   root.oninput = input || null;
   root.onchange = change || null;
   root.onpaste = paste || null;
+  root.onsubmit = submit || null;
   root.ontouchstart = touchstart || null;
   root.ontouchend = touchend || null;
 }

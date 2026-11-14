@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Generated at build time from env vars (scripts/write-config.js)
+public/config.js
+
 # Netlify CLI
 .netlify/
 

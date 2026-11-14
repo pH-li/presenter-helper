@@ -9,16 +9,55 @@ export class PresentationsModel {
    * @param {{ onSaveError?: (message: string) => void }} [options]
    */
   constructor(store, { onSaveError } = {}) {
-    this.store = store;
     this.onSaveError = onSaveError || (() => {});
+    this.listeners = new Set();
+    this.setStore(store);
+  }
+
+  /** Switch to another local cache (e.g. a signed-in user's) and reload from it. */
+  setStore(store) {
+    this.store = store;
     this.items = store.load().presentations.map((p) => normalize(p, true));
+  }
+
+  /** Called after every local change. @returns {() => void} unsubscribe */
+  subscribe(fn) {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
   }
 
   #save(p, touch = true) {
     if (p && touch) p.updatedAt = Date.now();
     const ok = this.store.save({ presentations: this.items });
     if (!ok) this.onSaveError('Could not save — browser storage is full or blocked.');
+    for (const fn of this.listeners) fn();
     return ok;
+  }
+
+  /**
+   * Replace the whole collection with synced data. Existing objects are updated
+   * in place, so a controller holding a reference (e.g. while presenting) keeps
+   * working.
+   */
+  replaceAll(next) {
+    const current = new Map(this.items.map((p) => [p.id, p]));
+    this.items = next.map((raw) => {
+      const n = normalize(raw, true);
+      const existing = current.get(n.id);
+      return existing ? Object.assign(existing, n) : n;
+    });
+    this.#save(null, false);
+  }
+
+  /** Add presentations (keeping their ids) that aren't already present. @returns {number} added */
+  adopt(presentations) {
+    const have = new Set(this.items.map((p) => p.id));
+    const fresh = presentations.filter((p) => !have.has(p.id)).map((p) => normalize(p, true));
+    if (fresh.length) {
+      this.items.push(...fresh);
+      this.#save(null, false);
+    }
+    return fresh.length;
   }
 
   /** Most recently edited first. */

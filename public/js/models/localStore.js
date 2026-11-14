@@ -3,6 +3,9 @@
 
 export const STORAGE_KEY = 'presenter-helper:v1';
 
+/** Signed-in users get their own cache so accounts never mix on a shared device. */
+export const userStorageKey = (userId) => `${STORAGE_KEY}:user:${userId}`;
+
 export class LocalStore {
   /**
    * @param {Storage} [storage] defaults to window.localStorage; injectable for tests
@@ -32,6 +35,14 @@ export class LocalStore {
     } catch (e) {
       console.warn('Could not save data', e);
       return false;
+    }
+  }
+
+  clear() {
+    try {
+      this.storage.removeItem(this.key);
+    } catch {
+      /* storage unavailable */
     }
   }
 }

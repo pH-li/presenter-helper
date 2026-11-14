@@ -6,12 +6,15 @@ export class HomeController {
   /**
    * @param {import('../models/presentationsModel.js').PresentationsModel} model
    * @param {import('../views/homeView.js').HomeView} view
+   * @param {import('../services/accountState.js').Account} account
    */
-  constructor(model, view) {
+  constructor(model, view, account) {
     this.model = model;
     this.view = view;
+    this.account = account;
   }
 
+  /** @returns {() => void} cleanup */
   mount() {
     this.view.bind({
       onCreate: () => navigate(href.edit(this.model.create().id)),
@@ -34,9 +37,19 @@ export class HomeController {
       },
     });
     this.render();
+
+    const { sync } = this.account;
+    const offStatus = sync ? sync.onStatus(() => this.view.setAccount(this.account.state())) : () => {};
+    const offRemote = sync ? sync.onRemoteChange(() => this.render()) : () => {};
+    return () => {
+      offStatus();
+      offRemote();
+    };
   }
 
   render() {
-    this.view.render(this.model.list());
+    const state = this.account.state();
+    this.view.render(this.model.list(), state);
+    this.view.setAccount(state);
   }
 }

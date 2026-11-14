@@ -216,3 +216,36 @@ input[type='text'] { font-size: 1.15rem; font-weight: 600; }
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   z-index: 10;
 }
+
+/* ---------- account & sync ---------- */
+a { color: var(--accent-hover); }
+.page.narrow { max-width: 560px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+.account { display: grid; gap: 14px; }
+.account h1 { font-size: 1.4rem; }
+.account p { margin: 0; }
+.signin { display: grid; gap: 12px; }
+.signin input[type='email'] {
+  width: 100%; padding: 10px 12px; font: inherit;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.small { font-size: 0.85rem; }
+.error-text { color: var(--over); }
+.btn:disabled { opacity: 0.6; cursor: default; }
+
+.sync-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 6px 12px;
+  border: 1px solid var(--border); border-radius: 999px;
+  color: var(--muted); text-decoration: none; font-size: 0.85rem; white-space: nowrap;
+}
+.sync-chip:hover { color: var(--text); background: var(--surface-2); }
+.sync-line { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.ok { background: #4cc38a; }
+.dot.busy { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+.dot.warn { background: var(--warn); }
+.dot.bad { background: var(--over); }
+@keyframes pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .dot.busy { animation: none; } }
