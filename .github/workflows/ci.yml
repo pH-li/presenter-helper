@@ -24,18 +24,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Required files exist
-        run: |
-          for f in public/index.html public/app.js public/store.js public/style.css netlify.toml; do
-            test -f "$f" || { echo "::error::Missing $f"; exit 1; }
-          done
+      - name: Static checks (required files, syntax, imports)
+        run: npm run check
 
-      - name: JavaScript syntax check
-        run: |
-          for f in public/*.js; do
-            echo "Checking $f"
-            node --check "$f"
-          done
+      - name: Unit tests
+        run: npm test
 
   deploy:
     name: Deploy to Netlify
