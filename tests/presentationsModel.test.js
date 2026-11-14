@@ -8,6 +8,7 @@ function memoryStorage() {
   return {
     getItem: (k) => (map.has(k) ? map.get(k) : null),
     setItem: (k, v) => map.set(k, String(v)),
+    removeItem: (k) => map.delete(k),
   };
 }
 
@@ -88,6 +89,42 @@ test('import mints new ids and accepts both backup shapes', () => {
 test('import rejects non-backups', () => {
   const { model } = setup();
   assert.throws(() => model.importData({ hello: 'world' }));
+});
+
+test('subscribers are notified on every change', () => {
+  const { model } = setup();
+  let calls = 0;
+  const off = model.subscribe(() => calls++);
+  const p = model.create();
+  model.update(p.id, { title: 'x' });
+  off();
+  model.remove(p.id);
+  assert.equal(calls, 2);
+});
+
+test('replaceAll updates existing objects in place and drops missing ones', () => {
+  const { model } = setup();
+  const a = model.create();
+  const b = model.create();
+  model.replaceAll([{ ...a, title: 'Synced A' }, { id: 'new', title: 'From cloud', slides: [{ notes: 'hi' }] }]);
+  assert.equal(a.title, 'Synced A'); // same object reference
+  assert.equal(model.get(a.id), a);
+  assert.equal(model.get(b.id), undefined);
+  assert.equal(model.get('new').slides[0].notes, 'hi');
+});
+
+test('setStore switches caches and adopt merges without duplicates', () => {
+  const storage = memoryStorage();
+  const model = new PresentationsModel(new LocalStore(storage, 'anon'));
+  const anon = model.create();
+  const anonItems = [...model.items];
+
+  model.setStore(new LocalStore(storage, 'user'));
+  assert.equal(model.items.length, 0);
+  assert.equal(model.adopt(anonItems), 1);
+  assert.equal(model.adopt(anonItems), 0);
+  assert.equal(model.get(anon.id).id, anon.id);
+  assert.equal(new LocalStore(storage, 'user').load().presentations.length, 1);
 });
 
 test('save failures are reported', () => {

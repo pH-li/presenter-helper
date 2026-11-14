@@ -1,6 +1,7 @@
 import { esc, fmtDate, plural } from '../utils.js';
 import { href } from '../router.js';
 import { bindRoot, armConfirm } from './ui.js';
+import { syncLabel, syncTone } from './syncLabels.js';
 
 export class HomeView {
   constructor(root) {
@@ -31,23 +32,41 @@ export class HomeView {
     });
   }
 
-  render(presentations) {
+  /** @param {{ enabled: boolean, ready: boolean, email: string|null, status: string }} account */
+  render(presentations, account) {
     document.title = 'Presenter Helper';
     this.root.innerHTML = `
       <main class="page">
         <header class="page-head">
           <h1>Presenter Helper</h1>
-          <button class="btn primary" data-act="new">+ New presentation</button>
+          <div class="row">
+            <a class="sync-chip" id="syncChip" href="${href.account()}" ${account.enabled ? '' : 'hidden'}></a>
+            <button class="btn primary" data-act="new">+ New presentation</button>
+          </div>
         </header>
         ${presentations.length ? this.#list(presentations) : this.#empty()}
         <footer class="page-foot">
-          <p class="muted">Your notes are saved in this browser only. Export a backup to move them to another device.</p>
+          <p class="muted">${
+            account.email
+              ? `Synced to <strong>${esc(account.email)}</strong> and saved on this device, so you can present offline.`
+              : account.enabled
+                ? `Saved in this browser only. <a href="${href.account()}">Sign in</a> to back up and sync across devices.`
+                : 'Your notes are saved in this browser only. Export a backup to move them to another device.'
+          }</p>
           <div class="row">
             <button class="btn small" data-act="export">Export backup</button>
             <label class="btn small">Import backup<input type="file" accept="application/json,.json" hidden data-act="import"></label>
           </div>
         </footer>
       </main>`;
+  }
+
+  setAccount(account) {
+    const chip = this.root.querySelector('#syncChip');
+    if (!chip) return;
+    chip.hidden = !account.enabled;
+    chip.innerHTML = `<span class="dot ${syncTone(account)}"></span>${esc(syncLabel(account) || '')}`;
+    chip.title = account.email ? `Signed in as ${account.email}` : 'Sign in to sync across devices';
   }
 
   #list(presentations) {

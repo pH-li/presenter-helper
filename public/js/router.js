@@ -2,6 +2,7 @@
 
 export const href = {
   home: () => '#/',
+  account: () => '#/account',
   edit: (id) => `#/edit/${encodeURIComponent(id)}`,
   present: (id) => `#/present/${encodeURIComponent(id)}`,
 };
@@ -26,6 +27,11 @@ export class Router {
   start() {
     window.addEventListener('hashchange', () => this.resolve());
     this.resolve();
+  }
+
+  /** Current route name: '' (home), 'edit', 'present', 'account'… */
+  get current() {
+    return location.hash.replace(/^#\/?/, '').split('/')[0] || '';
   }
 
   resolve() {

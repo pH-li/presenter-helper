@@ -1,2 +1,10 @@
 [build]
   publish = "public"
+  # Writes public/config.js from the SUPABASE_URL / SUPABASE_ANON_KEY environment variables.
+  command = "node scripts/write-config.js"
+
+# Always fetch fresh config and app code so sync settings and fixes apply immediately.
+[[headers]]
+  for = "/config.js"
+  [headers.values]
+    Cache-Control = "no-cache"
