@@ -2,7 +2,13 @@ import { FONT_STEP } from '../models/presentation.js';
 import { Timer } from '../models/timer.js';
 import { fmtDuration, clamp } from '../utils.js';
 import { href, navigate } from '../router.js';
-import { ScreenWakeLock, toggleFullscreen, exitFullscreen, isFullscreen } from '../services/screen.js';
+import {
+  ScreenWakeLock,
+  toggleFullscreen,
+  exitFullscreen,
+  isFullscreen,
+  isFullscreenSupported,
+} from '../services/screen.js';
 
 // Keyboard map. Keep in sync with the on-screen hint in presentView.js and the README table.
 const KEYMAP = {
@@ -70,6 +76,7 @@ export class PresentController {
       onFullscreen: a.fullscreen,
     });
     this.view.render(p);
+    this.view.setFullscreenAvailable(isFullscreenSupported());
     this.view.setFontSize(p.fontSize);
     this.showSlide();
     this.tick();
@@ -105,11 +112,11 @@ export class PresentController {
     const next = clamp(this.index + delta, 0, this.p.slides.length - 1);
     if (next === this.index) return;
     this.index = next;
-    this.showSlide();
+    this.showSlide(delta);
   }
 
-  showSlide() {
-    this.view.showSlide(this.index, this.p.slides.length, this.p.slides[this.index].notes);
+  showSlide(direction = 0) {
+    this.view.showSlide(this.index, this.p.slides.length, this.p.slides[this.index].notes, direction);
   }
 
   changeFont(delta) {
