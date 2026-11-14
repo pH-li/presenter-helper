@@ -1,5 +1,5 @@
 import { FONT_STEP } from '../models/presentation.js';
-import { Timer } from '../models/timer.js';
+import { Timer, SlideTimer } from '../models/timer.js';
 import { fmtDuration, clamp } from '../utils.js';
 import { href, navigate } from '../router.js';
 import {
@@ -50,6 +50,7 @@ export class PresentController {
     this.p = p;
     this.index = 0;
     this.timer = new Timer();
+    this.slideTimer = new SlideTimer(); // runs in step with this.timer
     this.wakeLock = new ScreenWakeLock();
 
     this.actions = {
@@ -112,7 +113,9 @@ export class PresentController {
     const next = clamp(this.index + delta, 0, this.p.slides.length - 1);
     if (next === this.index) return;
     this.index = next;
+    this.slideTimer.switchTo(next);
     this.showSlide(delta);
+    this.tick();
   }
 
   showSlide(direction = 0) {
@@ -125,14 +128,20 @@ export class PresentController {
 
   toggleTimer() {
     const running = this.timer.toggle();
-    if (running) this.wakeLock.acquire();
-    else this.wakeLock.release();
+    if (running) {
+      this.slideTimer.start();
+      this.wakeLock.acquire();
+    } else {
+      this.slideTimer.pause();
+      this.wakeLock.release();
+    }
     this.updateToggleLabel();
     this.tick();
   }
 
   resetTimer() {
     this.timer.reset();
+    this.slideTimer.reset();
     this.wakeLock.release();
     this.updateToggleLabel();
     this.tick();
@@ -151,5 +160,22 @@ export class PresentController {
     else if (remainingMs >= 0) sub = `${fmtDuration(remainingMs, true)} left of ${target} min`;
     else sub = `${fmtDuration(-remainingMs)} over ${target} min`;
     this.view.showTimer({ time: fmtDuration(ms), sub, state, paused: !this.timer.running && ms > 0 });
+    this.tickSlide(ms);
+  }
+
+  /** The current slide's own timer: shown once the talk has started, or whenever the slide has a time budget. */
+  tickSlide(talkMs) {
+    const slide = this.p.slides[this.index]; // can vanish if another device deleted slides mid-talk
+    const budget = (slide && slide.targetSeconds) || 0;
+    const s = this.slideTimer.status(budget);
+    const visible = Boolean(budget) || talkMs > 0;
+    let text = fmtDuration(s.ms);
+    if (budget) {
+      text =
+        s.state === 'over'
+          ? `${fmtDuration(s.ms)} · ${fmtDuration(-s.remainingMs)} over`
+          : `${fmtDuration(s.ms)} / ${fmtDuration(budget * 1000)}`;
+    }
+    this.view.showSlideTimer({ visible, text, progress: budget ? s.ms / (budget * 1000) : null, state: s.state });
   }
 }

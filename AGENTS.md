@@ -21,7 +21,7 @@ Presenter Helper is a static web app for speakers. The present view shows one sl
 | `public/js/models/localStore.js` | `LocalStore` adapter (`load` / `save` / `clear`). The signed-out cache uses key `presenter-helper:v1`; each user gets `userStorageKey(id)` |
 | `public/js/models/supabaseRemote.js` | `SupabaseRemote`: `fetchAll` / `upsert` / `remove` on the `presentations` table |
 | `public/js/models/syncMerge.js` | Pure `mergeRemote()` (three-way, last-write-wins by `updatedAt`, handles deletes via `lastSynced`) and `diffForPush()` |
-| `public/js/models/timer.js` | `Timer`, with an injectable clock; `status(targetMinutes)` returns `none`/`ok`/`warn`/`over` |
+| `public/js/models/timer.js` | `Timer` (whole talk) and `SlideTimer` (time per slide, kept in step by the present controller), both with injectable clocks; shared `targetStatus()` returns `none`/`ok`/`warn`/`over` |
 | `public/js/views/*.js` | `HomeView`, `EditView`, `PresentView`, `AccountView`, `syncLabels.js` and shared `ui.js` (`bindRoot`, `armConfirm`, `toast`, `downloadFile`) |
 | `public/js/controllers/*.js` | One per route. `mount(id)` returns `false` (not found → home) or a cleanup function |
 | `public/js/services/auth.js` | `AuthService`: magic-link sign-in (PKCE, so the code arrives as `?code=` and never clashes with the hash router), `onChange(user)` |
@@ -44,7 +44,7 @@ Presenter Helper is a static web app for speakers. The present view shows one sl
 ## Data model
 The local cache, under `presenter-helper:v1` (signed out) or `presenter-helper:v1:user:<id>`:
 ```js
-{ presentations: [{ id, title, targetMinutes, fontSize, updatedAt, slides: [{ id, notes }] }] }
+{ presentations: [{ id, title, targetMinutes, fontSize, updatedAt, slides: [{ id, notes, targetSeconds }] }] }
 ```
 The cloud table `public.presentations` has the columns `(user_id, id, data jsonb, updated_at)`, with primary key `(user_id, id)` and RLS that limits every operation to `auth.uid() = user_id`.
 

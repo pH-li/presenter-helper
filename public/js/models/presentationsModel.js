@@ -1,7 +1,7 @@
 // The collection of presentations plus every operation that changes them.
 // Each mutation persists through the injected store.
-import { uid, clamp } from '../utils.js';
-import { normalize, FONT_MIN, FONT_MAX } from './presentation.js';
+import { clamp } from '../utils.js';
+import { normalize, normalizeSeconds, newSlide, FONT_MIN, FONT_MAX } from './presentation.js';
 
 export class PresentationsModel {
   /**
@@ -102,7 +102,7 @@ export class PresentationsModel {
   addSlide(id, notes = '') {
     const p = this.get(id);
     if (!p) return -1;
-    p.slides.push({ id: uid(), notes });
+    p.slides.push(newSlide(notes));
     this.#save(p);
     return p.slides.length - 1;
   }
@@ -110,7 +110,17 @@ export class PresentationsModel {
   insertSlidesAfter(id, index, notesList) {
     const p = this.get(id);
     if (!p || !notesList.length) return;
-    p.slides.splice(index + 1, 0, ...notesList.map((notes) => ({ id: uid(), notes: String(notes) })));
+    p.slides.splice(index + 1, 0, ...notesList.map((notes) => newSlide(notes)));
+    this.#save(p);
+  }
+
+  /** Set a slide's time budget in seconds (0 clears it). */
+  setSlideTarget(id, index, seconds) {
+    const p = this.get(id);
+    if (!p || !p.slides[index]) return;
+    const next = normalizeSeconds(seconds);
+    if (p.slides[index].targetSeconds === next) return;
+    p.slides[index].targetSeconds = next;
     this.#save(p);
   }
 
