@@ -39,18 +39,10 @@ export class AccountController {
       },
       onSignOut: async () => {
         set({ busy: true, error: '' });
-        if (!(await sync.flush())) {
-          return set({ busy: false, error: 'Some changes haven’t synced yet. Connect to the internet and try again so nothing is lost.' });
-        }
-        const userId = auth.user && auth.user.id;
-        try {
-          await auth.signOut();
-          if (userId) sync.forgetUser(userId);
-          toast('Signed out.');
-          navigate(href.home());
-        } catch (e) {
-          set({ busy: false, error: friendlyError(e) });
-        }
+        const result = await this.account.signOut();
+        if (!result.ok) return set({ busy: false, error: result.error });
+        toast('Signed out.');
+        navigate(href.home());
       },
     });
 

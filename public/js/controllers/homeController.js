@@ -26,6 +26,14 @@ export class HomeController {
         const date = new Date().toISOString().slice(0, 10);
         downloadFile(`presenter-helper-backup-${date}.json`, this.model.toJSON());
       },
+      onSignOut: async () => {
+        const result = await this.account.signOut();
+        if (result.ok) toast('Signed out.');
+        else {
+          toast(result.error);
+          this.render(); // restore the button
+        }
+      },
       onImport: async (file) => {
         try {
           const count = this.model.importData(JSON.parse(await file.text()));

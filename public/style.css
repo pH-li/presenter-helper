@@ -279,3 +279,4 @@ a { color: var(--accent-hover); }
 .dot.bad { background: var(--over); }
 @keyframes pulse { 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { .dot.busy { animation: none; } }
+.chip-caret { font-size: 1.1rem; line-height: 1; margin-left: -2px; }
