@@ -1,0 +1,13 @@
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# Netlify CLI
+.netlify/
+
+# Node / OS / editor
+node_modules/
+.DS_Store
+Thumbs.db
+.vscode/
