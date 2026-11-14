@@ -3,44 +3,60 @@
 Guidance for AI coding agents working in this repository. Humans should read [CONTRIBUTING.md](CONTRIBUTING.md); everything there applies here too.
 
 ## What this is
-Presenter Helper is a static web app for speakers. The present view shows one slide's notes on the top half of the screen and a timer on the bottom half. It is deployed to Netlify from the `public/` directory, with no build step.
+Presenter Helper is a static web app for speakers. The present view shows one slide's notes on the top half of the screen and a timer on the bottom half. It is deployed to Netlify from `public/`, with no build step and no runtime dependencies.
 
-## Layout
-| Path | Purpose |
+## Architecture: MVC with native ES modules
+| Path | Role |
 | --- | --- |
-| `public/index.html` | Page shell; loads `store.js`, then `app.js` (classic scripts, not ES modules) |
-| `public/app.js` | Everything else: hash router (`#/`, `#/edit/<id>`, `#/present/<id>`), the three views, and the timer and keyboard handling |
-| `public/store.js` | The **only** persistence layer. Exposes the global `Store` with `load()` and `save(data)` |
-| `public/style.css` | All styles; dark theme driven by CSS custom properties in `:root` |
-| `netlify.toml` | `publish = "public"` |
-| `.github/workflows/ci.yml` | Check job (file presence + `node --check`), then Netlify deploy (preview on PRs, prod on `main`) |
+| `public/index.html` | Shell; loads `js/main.js` with `type="module"` |
+| `public/js/main.js` | Composition root. The **only** place objects are constructed and wired |
+| `public/js/router.js` | `Router` (hash routes `''`, `edit`, `present`), `href.*()` builders, `navigate()` |
+| `public/js/utils.js` | DOM-free helpers: `esc`, `uid`, `clamp`, `plural`, `fmtDate`, `fmtDuration` |
+| `public/js/models/presentation.js` | `normalize()`, `splitNotes()`, font constants |
+| `public/js/models/presentationsModel.js` | `PresentationsModel`: the collection and all mutations; persists via an injected store |
+| `public/js/models/localStore.js` | `LocalStore` adapter (`load()` / `save()`), with storage injectable for tests |
+| `public/js/models/timer.js` | `Timer`, with an injectable clock; `status(targetMinutes)` returns `none`/`ok`/`warn`/`over` |
+| `public/js/views/*.js` | `HomeView`, `EditView`, `PresentView` and shared `ui.js` (`bindRoot`, `armConfirm`, `toast`, `downloadFile`) |
+| `public/js/controllers/*.js` | One per route. `mount(id)` returns `false` (not found → home) or a cleanup function |
+| `public/js/services/screen.js` | Wake lock and fullscreen wrappers |
+| `tests/*.test.js` | `node:test` unit tests for models and utils |
+| `scripts/check.js` | CI static checks: required files, `node --check`, relative imports resolve |
+
+### Layer rules
+- **Models:** no DOM, `window` or `document`. They must run in Node. Every change to a model needs a test.
+- **Views:** render with `innerHTML` and attach delegated handlers via `bindRoot()` on `#app`, dispatching on `data-act` / `data-field`. They call the callbacks the controller passed to `bind()` and never import models.
+- **Controllers:** call model methods, then update the view. Anything registered on `document` or `window`, and any interval, must be torn down in the cleanup function that `mount()` returns.
+- **Persistence:** only store adapters may touch `localStorage` or a backend.
 
 ## Data model
-Everything is stored under the localStorage key `presenter-helper:v1`:
+Stored under the localStorage key `presenter-helper:v1`:
 ```js
 { presentations: [{ id, title, targetMinutes, fontSize, updatedAt, slides: [{ id, notes }] }] }
 ```
-`normalize()` in `app.js` fills defaults and clamps values. Any new field needs a default there so older saved data still loads.
+Any new field needs a default in `normalize()` so older saved data still loads. Don't change the key or the data shape without a migration.
 
 ## Conventions
-- Plain JavaScript in an IIFE; no dependencies, bundler or framework. Don't add any without being asked.
-- Each view renders with `innerHTML` and handles events through `setHandlers({ click, input, change, paste })` on `#app`, dispatching on `data-act` attributes.
-- **XSS:** run user text through `esc()` before it goes into HTML strings, or assign it via `textContent` / `.value`.
-- Present mode registers document-level listeners and an interval. Tear them down in the `cleanup` closure, which `route()` calls when you leave the view.
-- Keyboard shortcuts are listed in three places: the `onKey` switch, the `.keys` hint in the present markup, and the README table. Keep all three in sync.
-- Use `el.hidden` to show or hide elements, and keep the layout usable at a width of about 400px.
+- **XSS:** user text goes through `esc()` before it enters HTML strings, or is assigned via `textContent` / `.value`.
+- **Keyboard shortcuts** live in three places: `KEYMAP` in `presentController.js`, the `.keys` hint in `presentView.js`, and the README table. Keep all three in sync.
+- Use `el.hidden` to show or hide elements, and keep layouts usable at about 400px wide.
+- Don't add dependencies, frameworks or a build step unless asked.
 
 ## Verifying changes
 ```sh
-for f in public/*.js; do node --check "$f"; done   # what CI runs
-npx serve public                                   # then exercise it in a browser
+npm run check   # static checks (CI)
+npm test        # unit tests (CI)
+npm start       # serve ./public and exercise the UI in a browser
 ```
-There's no automated UI test suite yet. If your change touches behavior, say plainly what you did and didn't verify in a browser.
+There are no automated UI tests yet. If your change touches behavior, say plainly what you did and didn't verify in a browser.
+
+## Git workflow
+- Never commit to `main`. Work on a branch named `<type>/<description>`, e.g. `feat/…`, `fix/…`, `refactor/…`, `docs/…`, `test/…`, `ci/…` or `chore/…`.
+- PR titles start with the uppercase type: `FEAT: …`, `FIX: …`, `REFACTOR: …`, `DOCS: …`, `TEST: …`, `CI: …`, `CHORE: …`.
+- CI (`npm run check` and `npm test`) must pass before merging.
 
 ## Planned work
-- **Supabase auth + cloud sync.** Implement it inside `store.js`: keep `localStorage` as an offline fallback and use the Supabase JS client from a CDN. Only the anon key may live in the frontend, and row-level security must restrict each row to its owner.
+- **Supabase auth + cloud sync.** Add a new store adapter with the same `load()` / `save()` interface (likely async, so the model API may need to become async), keeping `LocalStore` as an offline fallback. Config comes from `SUPABASE_URL` / `SUPABASE_ANON_KEY` (see `.env.example`). Only the anon key may reach the frontend, and row-level security must restrict each row to its owner.
 
 ## Don'ts
-- Don't commit secrets: Netlify tokens or Supabase service-role keys.
-- Don't change the storage key or the shape of saved data without a migration in `normalize()` / `Store.load()`.
-- Don't push directly to `main`. Open a PR so CI runs.
+- Don't commit secrets: `.env`, Netlify tokens or Supabase service-role keys.
+- Don't reach into the DOM from models, or into models from views.

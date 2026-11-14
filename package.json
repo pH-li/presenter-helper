@@ -1,0 +1,16 @@
+{
+  "name": "presenter-helper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Speaking notes on top, a big timer on the bottom.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "npx --yes serve public",
+    "check": "node scripts/check.js",
+    "test": "node --test"
+  }
+}
