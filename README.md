@@ -30,6 +30,16 @@ Right now, data is stored in the browser's `localStorage`. Each browser on each 
 
 Sign-in and cloud sync (via [Supabase](https://supabase.com)) are planned. All persistence goes through [`public/store.js`](public/store.js), so that is the only file the backend swap should need to touch.
 
+### Environment variables
+Copy [`.env.example`](.env.example) to `.env` and fill in your Supabase values. `.env` is git-ignored.
+
+| Variable | Where to find it |
+| --- | --- |
+| `SUPABASE_URL` | Supabase → Project Settings → API → Project URL |
+| `SUPABASE_ANON_KEY` | Supabase → Project Settings → API → `anon` / public key |
+
+Never use the `service_role` key in this project; it bypasses row-level security. For deploys, add the same variables as GitHub Actions repository secrets.
+
 ## Project structure
 ```
 public/            # the deployed site (no build step)
