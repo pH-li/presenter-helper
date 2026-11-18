@@ -8,7 +8,9 @@ Speaking notes sit on the top half of the screen and a big timer on the bottom h
 - **Target length (optional):** shows time remaining. The timer turns amber near the end and red when you go over
 - **Per-slide timers (optional):** give any slide a time budget in the editor. You can type it as `1:30`, `45s`, `2m`, or a bare number like `2`, which means minutes.
   - The editor shows what the slide times add up to, and warns if that's more than the talk's target length.
-  - While presenting, the current slide shows its own timer and progress bar under the main timer. These turn amber in the slide's last 20% (at least 10 seconds) and red when over.
+  - While presenting, the **current slide's time is the big number**, labelled `SLIDE 3`. If the slide has a budget, a `/ 1:30` and a progress bar show under it. They turn amber in the slide's last 20% (at least 10 seconds) and red when over.
+  - The whole talk is a quiet one-line total underneath, such as `Total 3:12 / 10:00`. It turns amber or red only when you're running long.
+- **Movable timer:** the ⇅ button (or **L**) moves the timer panel between the bottom, the top, and beside the notes (on wide screens). The – button (or **M**) minimizes it to a small floating time pill, which you tap to bring the panel back. The layout is remembered on each device.
   - Time is tracked per slide. Going back to an earlier slide continues its total.
 - **Adjustable text size**, remembered for each presentation
 - **Editor:** one notes box per slide, which you can add, reorder and delete. If you paste text containing a line with only `---`, it is split into slides at each `---`
@@ -35,6 +37,8 @@ Speaking notes sit on the top half of the screen and a big timer on the bottom h
 | Space | Start / pause timer |
 | R | Reset timer |
 | F | Fullscreen |
+| L | Move the timer (bottom → top → side) |
+| M | Minimize / show the timer |
 | Esc | Exit |
 
 Most presentation clickers send PageUp/PageDown, so they work out of the box. On touch screens, swipe left or right outside the control bar to change slides. (iPhone Safari doesn't allow web pages to go fullscreen, so the Fullscreen button is hidden there.)

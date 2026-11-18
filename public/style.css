@@ -111,11 +111,52 @@ input[type='text'] { font-size: 1.15rem; font-weight: 600; }
 .btn.add { width: 100%; border-style: dashed; min-height: 52px; }
 
 /* ---------- present ---------- */
+/* Layout: the timer can sit at the bottom (default), top, or side, or be minimized.
+   Set by PresentView.setLayout() via data-timer / data-minimized. */
 .present {
+  position: relative;
   height: 100vh; height: 100dvh;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1.25fr) auto minmax(0, 1fr);
+  grid-template-areas: 'notes' 'bar' 'timer';
 }
+.present > .notes { grid-area: notes; }
+.present > .bar { grid-area: bar; }
+.present > .timer { grid-area: timer; }
+.present[data-timer='top'] {
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1.25fr);
+  grid-template-areas: 'timer' 'bar' 'notes';
+}
+/* Keep clear of the notch / home indicator when the timer is on top. */
+.present[data-timer='top']:not([data-minimized]) > .timer { padding-top: max(16px, env(safe-area-inset-top, 0px)); padding-bottom: 16px; }
+.present[data-timer='top']:not([data-minimized]) > .notes { padding-bottom: max(20px, env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 700px) {
+  .present[data-timer='side'] {
+    grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: 'notes timer' 'bar bar';
+  }
+  .present[data-timer='side'] > .timer { border-left: 1px solid var(--border); }
+}
+/* Minimized: notes fill the screen; a small floating pill keeps the slide time visible. */
+.present[data-minimized] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: 'notes' 'bar';
+}
+.mini-timer {
+  position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(var(--bar-h, 64px) + 12px);
+  z-index: 2;
+  min-height: 40px; padding: 6px 14px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: rgba(23, 26, 33, 0.92); color: var(--text);
+  font: inherit; font-size: 1.05rem; font-weight: 650; font-variant-numeric: tabular-nums;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); cursor: pointer;
+}
+.mini-timer:hover { border-color: #3a4252; }
+.mini-timer.warn { color: var(--warn); border-color: var(--warn); }
+.mini-timer.over { color: var(--over); border-color: var(--over); }
 .notes {
   overflow-y: auto; overscroll-behavior: contain;
   padding: clamp(20px, 4vh, 48px) clamp(16px, 5vw, 64px);
@@ -155,23 +196,34 @@ input[type='text'] { font-size: 1.15rem; font-weight: 600; }
 .icon-only { display: none; font-size: 1.15rem; line-height: 1; }
 .touch-hint { display: none; margin: 0; font-size: 0.85rem; }
 
+/* Timer panel: the current slide's time is the hero; the whole-talk total is a quiet line. */
 .timer {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
   padding: 16px;
   padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
-  overflow: hidden; text-align: center;
+  overflow: hidden; text-align: center; font-variant-numeric: tabular-nums;
+}
+.timer-tools { position: absolute; top: 8px; right: max(8px, env(safe-area-inset-right, 0px)); display: flex; gap: 4px; }
+.timer-tools .icon-btn { width: 36px; height: 36px; font-size: 1.05rem; color: var(--muted); border-color: transparent; }
+.timer-tools .icon-btn:hover { border-color: var(--border); }
+.slide-label {
+  font-size: 0.8rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
 }
 .time {
-  font-size: clamp(3.5rem, min(24vh, 22vw), 18rem);
+  font-size: clamp(3.5rem, min(22vh, 22vw), 16rem);
   font-weight: 650; line-height: 1; letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
   transition: color 0.3s;
 }
-.timer-sub { font-size: clamp(1rem, 2.6vh, 1.4rem); color: var(--muted); font-variant-numeric: tabular-nums; }
+.time-of { margin-top: -4px; font-size: clamp(1rem, 2.6vh, 1.4rem); color: var(--muted); }
 .timer.paused .time { opacity: 0.55; }
-.timer.warn .time, .timer.warn .timer-sub { color: var(--warn); }
-.timer.over .time, .timer.over .timer-sub { color: var(--over); }
-.keys { margin: 0; font-size: 0.8rem; }
+.timer.warn .time, .timer.warn .time-of { color: var(--warn); }
+.timer.over .time, .timer.over .time-of { color: var(--over); }
+.btn.round { min-width: 56px; border-radius: 999px; font-size: 1.15rem; }
+.total { font-size: 0.9rem; color: var(--muted); }
+.total.warn { color: var(--warn); }
+.total.over { color: var(--over); }
+.keys { margin: 0; font-size: 0.75rem; opacity: 0.8; }
 
 @media (max-width: 640px), (max-height: 560px) {
   .keys { display: none; }
@@ -204,22 +256,22 @@ input[type='text'] { font-size: 1.15rem; font-weight: 600; }
   .notes { padding-inline: max(16px, env(safe-area-inset-left, 0px)); }
 }
 
-/* ---------- phones (landscape): notes left, timer right, controls below ---------- */
+/* ---------- phones (landscape): always notes left, timer right, controls below ---------- */
 @media (orientation: landscape) and (max-height: 560px) {
-  .present {
+  .present:not([data-minimized]) {
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
     grid-template-areas: 'notes timer' 'bar bar';
   }
-  .notes { grid-area: notes; padding-block: max(16px, env(safe-area-inset-top, 0px)) 16px; }
-  .timer { grid-area: timer; border-left: 1px solid var(--border); gap: 8px; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-  .bar { grid-area: bar; padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)); }
+  .notes { padding-block: max(16px, env(safe-area-inset-top, 0px)) 16px; }
+  .timer { border-left: 1px solid var(--border); gap: 6px; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .bar { padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)); }
   .time { font-size: clamp(2.5rem, min(22vh, 11vw), 7rem); }
-  .timer-sub { font-size: 0.95rem; }
   .btn.big { min-height: 44px; padding: 8px 18px; font-size: 1rem; }
   .bar .label { display: inline; }
   .bar .icon-only { display: none; }
   .bar { flex-wrap: nowrap; }
+  #moveTimerBtn { display: none; } /* position is fixed to the side here */
 }
 
 /* ---------- per-slide timers ---------- */
@@ -241,16 +293,12 @@ input[type='text'] { font-size: 1.15rem; font-weight: 600; }
 .timing-summary { margin: -8px 0 16px; font-size: 0.9rem; color: var(--muted); }
 .timing-summary.over { color: var(--warn); }
 
-.slide-timer { display: grid; gap: 6px; width: min(320px, 80%); font-variant-numeric: tabular-nums; }
-.slide-timer-text { font-size: clamp(0.95rem, 2.4vh, 1.2rem); }
-.slide-progress { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.slide-progress { width: min(320px, 80%); height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .slide-progress-fill { height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width 0.2s linear; }
-.slide-timer.warn .slide-progress-fill { background: var(--warn); }
-.slide-timer.over .slide-progress-fill { background: var(--over); }
-.slide-timer.warn #slideTime { color: var(--warn); }
-.slide-timer.over #slideTime { color: var(--over); }
+.timer.warn .slide-progress-fill { background: var(--warn); }
+.timer.over .slide-progress-fill { background: var(--over); }
 @media (pointer: coarse) { .slide-time input { min-height: 40px; } }
-@media (orientation: landscape) and (max-height: 560px) { .slide-timer { width: 90%; gap: 4px; } }
+@media (orientation: landscape) and (max-height: 560px) { .slide-progress { width: 90%; } }
 
 /* ---------- toast ---------- */
 .toast {

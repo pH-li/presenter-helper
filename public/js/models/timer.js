@@ -1,4 +1,25 @@
 // Stopwatches with optional targets. No DOM, and the clock is injectable for tests.
+import { fmtDuration } from '../utils.js';
+
+/**
+ * What the timer panel shows. The current slide's time is the big number;
+ * the whole talk is a quiet one-line total underneath.
+ * @param {{ index: number, slide: { ms: number, state: string }, budgetSeconds: number,
+ *           total: { ms: number, state: string }, targetMinutes: number }} input
+ *   slide / total are SlideTimer.status() / Timer.status() results
+ */
+export function timerReadout({ index, slide, budgetSeconds, total, targetMinutes }) {
+  const budgetMs = (budgetSeconds || 0) * 1000;
+  return {
+    label: `Slide ${index + 1}`,
+    time: fmtDuration(slide.ms),
+    of: budgetMs ? `/ ${fmtDuration(budgetMs)}` : '',
+    progress: budgetMs ? slide.ms / budgetMs : null,
+    state: slide.state,
+    total: `Total ${fmtDuration(total.ms)}${targetMinutes ? ` / ${fmtDuration(targetMinutes * 60000)}` : ''}`,
+    totalState: total.state,
+  };
+}
 
 /**
  * Where elapsed time stands against a target.
