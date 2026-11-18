@@ -1,6 +1,7 @@
 import { FONT_STEP } from '../models/presentation.js';
-import { Timer, SlideTimer } from '../models/timer.js';
-import { fmtDuration, clamp } from '../utils.js';
+import { Timer, SlideTimer, timerReadout } from '../models/timer.js';
+import { nextTimerPosition } from '../models/prefsStore.js';
+import { clamp } from '../utils.js';
 import { href, navigate } from '../router.js';
 import {
   ScreenWakeLock,
@@ -27,6 +28,10 @@ const KEYMAP = {
   R: 'reset',
   f: 'fullscreen',
   F: 'fullscreen',
+  l: 'moveTimer',
+  L: 'moveTimer',
+  m: 'minimizeTimer',
+  M: 'minimizeTimer',
   Escape: 'exit',
 };
 
@@ -36,10 +41,12 @@ export class PresentController {
   /**
    * @param {import('../models/presentationsModel.js').PresentationsModel} model
    * @param {import('../views/presentView.js').PresentView} view
+   * @param {import('../models/prefsStore.js').PrefsStore} prefsStore  per-device timer layout
    */
-  constructor(model, view) {
+  constructor(model, view, prefsStore) {
     this.model = model;
     this.view = view;
+    this.prefsStore = prefsStore;
   }
 
   /** @returns {false | (() => void)} cleanup, or false if the presentation doesn't exist */
@@ -63,6 +70,8 @@ export class PresentController {
       toggle: () => this.toggleTimer(),
       reset: () => this.resetTimer(),
       fullscreen: toggleFullscreen,
+      moveTimer: () => this.updateLayout({ timerPosition: nextTimerPosition(this.prefs.timerPosition, this.view.canPlaceTimerBeside()), timerMinimized: false }),
+      minimizeTimer: () => this.updateLayout({ timerMinimized: !this.prefs.timerMinimized }),
       exit: () => navigate(href.edit(p.id)),
     };
 
@@ -75,8 +84,12 @@ export class PresentController {
       onToggle: a.toggle,
       onReset: a.reset,
       onFullscreen: a.fullscreen,
+      onMoveTimer: a.moveTimer,
+      onMinimizeTimer: a.minimizeTimer,
     });
     this.view.render(p);
+    this.prefs = this.prefsStore.load();
+    this.view.setLayout(this.prefs);
     this.view.setFullscreenAvailable(isFullscreenSupported());
     this.view.setFontSize(p.fontSize);
     this.showSlide();
@@ -135,7 +148,6 @@ export class PresentController {
       this.slideTimer.pause();
       this.wakeLock.release();
     }
-    this.updateToggleLabel();
     this.tick();
   }
 
@@ -143,39 +155,27 @@ export class PresentController {
     this.timer.reset();
     this.slideTimer.reset();
     this.wakeLock.release();
-    this.updateToggleLabel();
     this.tick();
   }
 
-  updateToggleLabel() {
-    const t = this.timer;
-    this.view.setToggleLabel(t.running ? 'Pause' : t.elapsedMs ? 'Resume' : 'Start');
+  /** Change and remember (per device) where the timer sits / whether it's minimized. */
+  updateLayout(patch) {
+    this.prefs = this.prefsStore.update(patch);
+    this.view.setLayout(this.prefs);
   }
 
+  /** Big number: time on the current slide. Quiet line: the whole talk. */
   tick() {
-    const target = this.p.targetMinutes;
-    const { ms, remainingMs, state } = this.timer.status(target);
-    let sub;
-    if (state === 'none') sub = this.timer.running || ms ? 'Elapsed' : 'Press Start or Space when you begin';
-    else if (remainingMs >= 0) sub = `${fmtDuration(remainingMs, true)} left of ${target} min`;
-    else sub = `${fmtDuration(-remainingMs)} over ${target} min`;
-    this.view.showTimer({ time: fmtDuration(ms), sub, state, paused: !this.timer.running && ms > 0 });
-    this.tickSlide(ms);
-  }
-
-  /** The current slide's own timer: shown once the talk has started, or whenever the slide has a time budget. */
-  tickSlide(talkMs) {
     const slide = this.p.slides[this.index]; // can vanish if another device deleted slides mid-talk
-    const budget = (slide && slide.targetSeconds) || 0;
-    const s = this.slideTimer.status(budget);
-    const visible = Boolean(budget) || talkMs > 0;
-    let text = fmtDuration(s.ms);
-    if (budget) {
-      text =
-        s.state === 'over'
-          ? `${fmtDuration(s.ms)} · ${fmtDuration(-s.remainingMs)} over`
-          : `${fmtDuration(s.ms)} / ${fmtDuration(budget * 1000)}`;
-    }
-    this.view.showSlideTimer({ visible, text, progress: budget ? s.ms / (budget * 1000) : null, state: s.state });
+    const budgetSeconds = (slide && slide.targetSeconds) || 0;
+    const total = this.timer.status(this.p.targetMinutes);
+    const readout = timerReadout({
+      index: this.index,
+      slide: this.slideTimer.status(budgetSeconds),
+      budgetSeconds,
+      total,
+      targetMinutes: this.p.targetMinutes,
+    });
+    this.view.showTimer(readout, { running: this.timer.running, started: total.ms > 0 });
   }
 }

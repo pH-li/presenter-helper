@@ -2,13 +2,16 @@ import { href } from '../router.js';
 import { bindRoot, swipeHandlers, prefersReducedMotion } from './ui.js';
 import { notesToHtml } from '../notes/format.js';
 
+const POSITION_LABEL = { bottom: 'bottom', top: 'top', side: 'side' };
+const STATES = ['ok', 'warn', 'over'];
+
 export class PresentView {
   constructor(root) {
     this.root = root;
     this.els = {};
   }
 
-  /** @param {{ onPrev, onNext, onSmaller, onBigger, onToggle, onReset, onFullscreen }} h */
+  /** @param {{ onPrev, onNext, onSmaller, onBigger, onToggle, onReset, onFullscreen, onMoveTimer, onMinimizeTimer }} h */
   bind(h) {
     const actions = {
       prev: h.onPrev,
@@ -18,6 +21,8 @@ export class PresentView {
       toggle: h.onToggle,
       reset: h.onReset,
       fullscreen: h.onFullscreen,
+      'move-timer': h.onMoveTimer,
+      'minimize-timer': h.onMinimizeTimer,
     };
     bindRoot(this.root, {
       click: (e) => {
@@ -35,10 +40,12 @@ export class PresentView {
   render(p) {
     document.title = `Presenting · ${p.title || 'Untitled talk'}`;
     this.root.innerHTML = `
-      <div class="present">
+      <div class="present" id="present" data-timer="bottom">
         <section class="notes" id="notes" aria-live="polite">
           <div class="notes-text" id="notesText"></div>
         </section>
+        <button class="mini-timer" id="miniTimer" data-act="minimize-timer" hidden
+          aria-label="Show timer" title="Show timer (M)"><span id="miniTime">0:00</span></button>
         <nav class="bar" aria-label="Presenter controls">
           <div class="bar-group">
             <button class="btn" data-act="prev" aria-label="Previous slide" title="Previous slide (←)">←</button>
@@ -59,24 +66,26 @@ export class PresentView {
             </a>
           </div>
         </nav>
-        <section class="timer" id="timer">
-          <div class="time" id="time">0:00</div>
-          <div class="timer-sub" id="timerSub"></div>
-          <div class="slide-timer" id="slideTimer" hidden>
-            <div class="slide-timer-text"><span class="muted">This slide</span> <span id="slideTime"></span></div>
-            <div class="slide-progress" id="slideProgressTrack" aria-hidden="true"><div class="slide-progress-fill" id="slideProgress"></div></div>
+        <section class="timer" id="timer" aria-label="Timer">
+          <div class="timer-tools">
+            <button class="icon-btn" data-act="move-timer" id="moveTimerBtn" aria-label="Move timer" title="Move timer (L)">⇅</button>
+            <button class="icon-btn" data-act="minimize-timer" aria-label="Minimize timer" title="Minimize timer (M)">–</button>
           </div>
+          <div class="slide-label" id="slideLabel">Slide 1</div>
+          <div class="time" id="time" role="timer" aria-live="off">0:00</div>
+          <div class="time-of" id="timeOf" hidden></div>
+          <div class="slide-progress" id="slideProgressTrack" aria-hidden="true" hidden><div class="slide-progress-fill" id="slideProgress"></div></div>
           <div class="row timer-actions">
-            <button class="btn primary big" data-act="toggle" id="toggle">Start</button>
-            <button class="btn big" data-act="reset">Reset</button>
+            <button class="btn primary big round" data-act="toggle" id="toggle" aria-label="Start timer" title="Start / pause (Space)">▶</button>
+            <button class="btn big round" data-act="reset" aria-label="Reset timer" title="Reset (R)">↺</button>
           </div>
-          <p class="keys muted">← → slides · ↑ ↓ scroll · + − text size · Space start/pause · R reset · F fullscreen · Esc exit</p>
-          <p class="touch-hint muted">Swipe left or right to change slides</p>
+          <div class="total" id="total"></div>
+          <p class="keys muted">← → slide · Space start · R reset · L move timer · M hide timer</p>
         </section>
       </div>`;
     for (const id of [
-      'notes', 'notesText', 'count', 'fontLabel', 'timer', 'time', 'timerSub', 'toggle', 'fullscreenBtn',
-      'slideTimer', 'slideTime', 'slideProgressTrack', 'slideProgress',
+      'present', 'notes', 'notesText', 'count', 'fontLabel', 'timer', 'time', 'timeOf', 'slideLabel', 'total',
+      'toggle', 'fullscreenBtn', 'moveTimerBtn', 'slideProgressTrack', 'slideProgress', 'miniTimer', 'miniTime',
     ]) {
       this.els[id] = this.root.querySelector('#' + id);
     }
@@ -117,32 +126,44 @@ export class PresentView {
     n.scrollBy({ top: direction * n.clientHeight * 0.3, behavior: 'smooth' });
   }
 
-  /** @param {{ time: string, sub: string, state: 'none'|'ok'|'warn'|'over', paused: boolean }} t */
-  showTimer({ time, sub, state, paused }) {
-    this.els.time.textContent = time;
-    this.els.timerSub.textContent = sub;
-    const c = this.els.timer.classList;
-    c.toggle('warn', state === 'warn');
-    c.toggle('over', state === 'over');
-    c.toggle('paused', paused);
+  /** True when the screen is wide enough for the timer to sit beside the notes. */
+  canPlaceTimerBeside() {
+    return window.matchMedia('(min-width: 700px)').matches;
+  }
+
+  /** @param {{ timerPosition: 'bottom'|'top'|'side', timerMinimized: boolean }} prefs */
+  setLayout({ timerPosition, timerMinimized }) {
+    const e = this.els;
+    e.present.dataset.timer = timerPosition;
+    e.present.toggleAttribute('data-minimized', timerMinimized);
+    e.timer.hidden = timerMinimized;
+    e.miniTimer.hidden = !timerMinimized;
+    e.moveTimerBtn.title = `Move timer (L) · now at the ${POSITION_LABEL[timerPosition]}`;
   }
 
   /**
-   * The current slide's own timer.
-   * @param {{ visible: boolean, text: string, progress: number|null, state: 'none'|'ok'|'warn'|'over' }} s
-   *   progress: 0..1 of the slide's budget, or null when the slide has no budget
+   * @param {ReturnType<import('../models/timer.js').timerReadout>} r
+   * @param {{ running: boolean, started: boolean }} t
    */
-  showSlideTimer({ visible, text, progress, state }) {
+  showTimer(r, { running, started }) {
     const e = this.els;
-    e.slideTimer.hidden = !visible;
-    if (!visible) return;
-    e.slideTime.textContent = text;
-    e.slideProgressTrack.hidden = progress === null;
-    if (progress !== null) e.slideProgress.style.width = `${Math.min(1, Math.max(0, progress)) * 100}%`;
-    for (const s of ['ok', 'warn', 'over']) e.slideTimer.classList.toggle(s, state === s);
-  }
+    e.slideLabel.textContent = r.label;
+    e.time.textContent = r.time;
+    e.timeOf.hidden = !r.of;
+    e.timeOf.textContent = r.of;
+    e.slideProgressTrack.hidden = r.progress === null;
+    if (r.progress !== null) e.slideProgress.style.width = `${Math.min(1, Math.max(0, r.progress)) * 100}%`;
+    e.total.textContent = r.total;
 
-  setToggleLabel(label) {
-    this.els.toggle.textContent = label;
+    for (const s of STATES) {
+      e.timer.classList.toggle(s, r.state === s);
+      e.miniTimer.classList.toggle(s, r.state === s);
+      e.total.classList.toggle(s, r.totalState === s);
+    }
+    e.timer.classList.toggle('paused', !running && started);
+    e.miniTime.textContent = r.time;
+
+    e.toggle.textContent = running ? '❚❚' : '▶';
+    e.toggle.setAttribute('aria-label', running ? 'Pause timer' : started ? 'Resume timer' : 'Start timer');
   }
 }

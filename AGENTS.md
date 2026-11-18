@@ -21,9 +21,10 @@ Presenter Helper is a static web app for speakers. The present view shows one sl
 | `public/js/models/presentation.js` | `normalize()`, `splitNotes()`, font constants |
 | `public/js/models/presentationsModel.js` | `PresentationsModel`: the collection and all mutations; persists via an injected store. Also `subscribe()`, `setStore()`, `replaceAll()` (updates objects in place) and `adopt()` |
 | `public/js/models/localStore.js` | `LocalStore` adapter (`load` / `save` / `clear`). The signed-out cache uses key `presenter-helper:v1`; each user gets `userStorageKey(id)` |
+| `public/js/models/prefsStore.js` | `PrefsStore`: **per-device, not synced** display prefs under `presenter-helper:prefs` (`timerPosition`: bottom/top/side, `timerMinimized`) |
 | `public/js/models/supabaseRemote.js` | `SupabaseRemote`: `fetchAll` / `upsert` / `remove` on the `presentations` table |
 | `public/js/models/syncMerge.js` | Pure `mergeRemote()` (three-way, last-write-wins by `updatedAt`, handles deletes via `lastSynced`) and `diffForPush()` |
-| `public/js/models/timer.js` | `Timer` (whole talk) and `SlideTimer` (time per slide, kept in step by the present controller), both with injectable clocks; shared `targetStatus()` returns `none`/`ok`/`warn`/`over` |
+| `public/js/models/timer.js` | `Timer` (whole talk) and `SlideTimer` (time per slide, kept in step by the present controller), both with injectable clocks; shared `targetStatus()` returns `none`/`ok`/`warn`/`over`; `timerReadout()` builds what the panel shows (slide time is primary, the total is secondary) |
 | `public/js/views/*.js` | `HomeView`, `EditView`, `PresentView`, `AccountView`, `syncLabels.js` and shared `ui.js` (`bindRoot`, `armConfirm`, `toast`, `downloadFile`) |
 | `public/js/controllers/*.js` | One per route. `mount(id)` returns `false` (not found → home) or a cleanup function |
 | `public/js/services/auth.js` | `AuthService`: magic-link sign-in (PKCE, so the code arrives as `?code=` and never clashes with the hash router), `onChange(user)` |

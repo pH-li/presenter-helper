@@ -15,6 +15,7 @@ import { AuthService } from './services/auth.js';
 import { CloudSync } from './services/cloudSync.js';
 import { getSupabase } from './services/supabaseClient.js';
 import { createAccount } from './services/accountState.js';
+import { PrefsStore } from './models/prefsStore.js';
 import { Router } from './router.js';
 import { plural } from './utils.js';
 
@@ -31,7 +32,7 @@ const account = createAccount(auth, sync);
 const root = document.getElementById('app');
 const home = new HomeController(model, new HomeView(root), account);
 const edit = new EditController(model, new EditView(root));
-const present = new PresentController(model, new PresentView(root));
+const present = new PresentController(model, new PresentView(root), new PrefsStore());
 const accountPage = new AccountController(account, new AccountView(root));
 
 const router = new Router(
